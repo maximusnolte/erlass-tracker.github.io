@@ -1,0 +1,131 @@
+name: Sync Google Sheets → subjects.json
+
+on:
+  workflow_dispatch:        # manuell per Knopfdruck
+  schedule:
+    - cron: '0 6 * * *'    # täglich um 06:00 UTC
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install googleapis
+        run: npm install googleapis
+
+      - name: Fetch Sheets & build subjects.json
+        env:
+          GOOGLE_API_KEY:   ${{ secrets.GOOGLE_API_KEY }}
+          SPREADSHEET_ID:   ${{ secrets.SPREADSHEET_ID }}
+        run: |
+          node - <<'EOF'
+          const { google } = require('googleapis');
+          const fs = require('fs');
+
+          const sheets = google.sheets({
+            version: 'v4',
+            auth: process.env.GOOGLE_API_KEY
+          });
+
+          const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+
+          async function getRows(sheetTab) {
+            const res = await sheets.spreadsheets.values.get({
+              spreadsheetId: SPREADSHEET_ID,
+              range: `${sheetTab}!A:E`,   // section_title | quarter | topic_text | is_lk | section_id
+            });
+            return res.data.values || [];
+          }
+
+          async function main() {
+            // 1. _config einlesen
+            const configRows = await getRows('_config');
+            const header = configRows[0]; // subject_id | subject_name | sheet_tab | subject_level | color | accent | bg
+            const configs = configRows.slice(1).map(row => ({
+              id:       row[0],
+              name:     row[1],
+              tab:      row[2],
+              level:    row[3],
+              color:    row[4],
+              accent:   row[5],
+              bg:       row[6],
+            }));
+
+            const subjects = [];
+
+            for (const config of configs) {
+              const rows = await getRows(config.tab);
+              if (rows.length < 2) continue;
+
+              const dataRows = rows.slice(1); // Header überspringen
+
+              // Sektionen gruppieren
+              const sectionsMap = new Map();
+              for (const row of dataRows) {
+                const [section_title, quarter, topic_text, is_lk, section_id] = row;
+                if (!section_title || !topic_text) continue;
+
+                const key = section_id || section_title;
+                if (!sectionsMap.has(key)) {
+                  sectionsMap.set(key, {
+                    id:      section_id || key,
+                    title:   section_title,
+                    quarter: quarter,
+                    topics:  []
+                  });
+                }
+                const topicText = is_lk === 'true'
+                  ? `[LK] ${topic_text}`
+                  : topic_text;
+                sectionsMap.get(key).topics.push(topicText);
+              }
+
+              // Quartale gruppieren
+              const quartersMap = new Map();
+              for (const section of sectionsMap.values()) {
+                const q = section.quarter;
+                if (!quartersMap.has(q)) quartersMap.set(q, []);
+                quartersMap.get(q).push({
+                  id:     section.id,
+                  title:  section.title,
+                  topics: section.topics
+                });
+              }
+
+              const quarters = [...quartersMap.entries()]
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([q, sections]) => ({ q, sections }));
+
+              subjects.push({
+                id:       config.id,
+                name:     config.name,
+                level:    config.level,
+                color:    config.color,
+                accent:   config.accent,
+                bg:       config.bg,
+                quarters: quarters
+              });
+            }
+
+            fs.writeFileSync('subjects.json', JSON.stringify(subjects, null, 2), 'utf8');
+            console.log(`✅ subjects.json geschrieben mit ${subjects.length} Fächern`);
+          }
+
+          main().catch(err => { console.error(err); process.exit(1); });
+          EOF
+
+      - name: Commit subjects.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add subjects.json
+          git diff --cached --quiet || git commit -m "chore: sync subjects.json from Google Sheets"
+          git push
