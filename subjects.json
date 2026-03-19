@@ -222,7 +222,7 @@
     "name": "Englisch",
     "color": "#D4A017",
     "accent": "#FFD54F",
-    "bg": "#f0f8ff",
+    "bg": "#fffde7",
     "quarters": [
       {
         "q": "Q1",
@@ -812,7 +812,7 @@
     "name": "Politik & Wirtschaft",
     "color": "#9B59B6",
     "accent": "#D291FF",
-    "bg": "#f0fff4",
+    "bg": "#f3e5f5",
     "quarters": [
       {
         "q": "Q1",
