@@ -53,6 +53,7 @@ jobs:
           async function main() {
             // 1. _config einlesen (columns: subject_id | subject_name | sheet_tab | color | accent | bg)
             const configRows = await getRows('_config', 'A:F');
+            console.log('CONFIG ROWS:', JSON.stringify(configRows));
             const configs = configRows.slice(1).map(row => ({
               id:     row[0],
               name:   row[1],
