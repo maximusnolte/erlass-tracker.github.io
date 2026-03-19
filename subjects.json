@@ -3,6 +3,8 @@
     "id": "deutsch",
     "name": "Deutsch",
     "color": "#C94A4A",
+    "accent": "#E57373",
+    "bg": "#fff5f5",
     "quarters": [
       {
         "q": "Q1",
@@ -108,14 +110,14 @@
           }
         ]
       }
-    ],
-    "accent": "#e07070",
-    "bg": "#fdf0f0"
+    ]
   },
   {
     "id": "englisch",
     "name": "Englisch",
     "color": "#D4A017",
+    "accent": "#FFD54F",
+    "bg": "#f0f8ff",
     "quarters": [
       {
         "q": "Q1",
@@ -213,14 +215,14 @@
           }
         ]
       }
-    ],
-    "accent": "#e8c040",
-    "bg": "#fdf8e0"
+    ]
   },
   {
     "id": "mathe",
     "name": "Mathematik",
     "color": "#4CAF7D",
+    "accent": "#81C995",
+    "bg": "#effcf8",
     "quarters": [
       {
         "q": "Q1",
@@ -329,14 +331,14 @@
           }
         ]
       }
-    ],
-    "accent": "#70c89a",
-    "bg": "#edf8f1"
+    ]
   },
   {
     "id": "bio",
     "name": "Biologie",
     "color": "#3A7BD5",
+    "accent": "#6FA8FF",
+    "bg": "#f6f0ff",
     "quarters": [
       {
         "q": "Q1",
@@ -449,14 +451,14 @@
           }
         ]
       }
-    ],
-    "accent": "#6096e0",
-    "bg": "#eaf0fc"
+    ]
   },
   {
     "id": "powi",
     "name": "Politik u. Wirtschaft",
     "color": "#9B59B6",
+    "accent": "#D291FF",
+    "bg": "#f0fff4",
     "quarters": [
       {
         "q": "Q1",
@@ -570,8 +572,6 @@
           }
         ]
       }
-    ],
-    "accent": "#b580c8",
-    "bg": "#f5edf9"
+    ]
   }
 ]
