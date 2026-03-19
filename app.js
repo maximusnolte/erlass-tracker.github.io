@@ -25,9 +25,10 @@ const STORAGE_KEY = 'abitur-checklisten-2026-offline-v1';
 const UI_KEY      = 'abitur-checklisten-2026-ui-v1';
 
 const state = {
-  checked:       {},
-  openSections:  {},
-  activeSubject: 'deutsch'
+  checked:        {},
+  openSections:   {},
+  activeSubject:  'deutsch',
+  subjectLevels:  {}
 };
 
 function loadState() {
@@ -37,12 +38,15 @@ function loadState() {
     state.checked      = savedChecked && typeof savedChecked === 'object' ? savedChecked : {};
     state.openSections = savedUi.openSections && typeof savedUi.openSections === 'object'
                            ? savedUi.openSections : {};
+    state.subjectLevels = savedUi.subjectLevels && typeof savedUi.subjectLevels === 'object'
+                           ? savedUi.subjectLevels : {};
     if (savedUi.activeSubject && subjects.some(s => s.id === savedUi.activeSubject)) {
       state.activeSubject = savedUi.activeSubject;
     }
   } catch (e) {
     state.checked       = {};
     state.openSections  = {};
+    state.subjectLevels = {};
     state.activeSubject = 'deutsch';
   }
 }
@@ -53,8 +57,9 @@ function saveChecked() {
 
 function saveUi() {
   localStorage.setItem(UI_KEY, JSON.stringify({
-    activeSubject: state.activeSubject,
-    openSections:  state.openSections
+    activeSubject:  state.activeSubject,
+    openSections:   state.openSections,
+    subjectLevels:  state.subjectLevels
   }));
 }
 
@@ -64,6 +69,16 @@ function saveUi() {
 
 function getSubject() {
   return subjects.find(s => s.id === state.activeSubject) || subjects[0];
+}
+
+function getEffectiveLevel(subject) {
+  return state.subjectLevels[subject.id] || subject.level;
+}
+
+function formatLevel(level) {
+  if (level === 'lk') return 'Leistungskurs';
+  if (level === 'gk') return 'Grundkurs';
+  return level;
 }
 
 function countDone(section) {
@@ -100,13 +115,16 @@ function escapeHtml(str) {
 
 function renderTabs() {
   const tabs = document.getElementById('tabs');
-  tabs.innerHTML = subjects.map(subject => `
-    <button
-      class="tab ${subject.id === state.activeSubject ? 'active' : ''}"
-      data-subject="${subject.id}"
-      style="--tab-color:${subject.color}"
-    >${subject.name} · ${subject.level}</button>
-  `).join('');
+  tabs.innerHTML = subjects.map(subject => {
+    const lvl = getEffectiveLevel(subject).toUpperCase();
+    return `
+      <button
+        class="tab ${subject.id === state.activeSubject ? 'active' : ''}"
+        data-subject="${subject.id}"
+        style="--tab-color:${subject.color}"
+      >${escapeHtml(subject.name)} · ${lvl}</button>
+    `;
+  }).join('');
 
   tabs.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -142,19 +160,36 @@ function progressRing(pct, color) {
    RENDER – HAUPT-ANSICHT
    ================================================================ */
 
+let isInitialRender = true;
+
 function render() {
-  const subject = getSubject();
+  const subject       = getSubject();
+  const effectiveLevel = getEffectiveLevel(subject);
   setTheme(subject);
   renderTabs();
 
   const app     = document.getElementById('app');
   const overall = calcSubjectProgress(subject);
 
+  if (isInitialRender) {
+    app.classList.add('initial-load');
+    isInitialRender = false;
+  } else {
+    app.classList.remove('initial-load');
+  }
+
   app.innerHTML = `
     <section class="hero">
       <div>
         <h2>${escapeHtml(subject.name)}</h2>
-        <div class="muted">${escapeHtml(subject.level)} · ${overall.done} von ${overall.total} Themen erledigt</div>
+        <div class="muted">${escapeHtml(formatLevel(effectiveLevel))} · ${overall.done} von ${overall.total} Themen erledigt</div>
+        <div class="level-selector">
+          <span class="level-label">Kurstyp:</span>
+          <div class="level-toggle">
+            <button class="level-btn ${effectiveLevel === 'gk' ? 'active' : ''}" data-set-level="gk">GK</button>
+            <button class="level-btn ${effectiveLevel === 'lk' ? 'active' : ''}" data-set-level="lk">LK</button>
+          </div>
+        </div>
         <div class="actions">
           <button class="btn" id="reset-subject">Fach zurücksetzen</button>
           <button class="btn" id="reset-all">Alles zurücksetzen</button>
@@ -265,6 +300,15 @@ function bindEvents() {
     });
   });
 
+  document.querySelectorAll('[data-set-level]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const subject = getSubject();
+      state.subjectLevels[subject.id] = btn.dataset.setLevel;
+      saveUi();
+      render();
+    });
+  });
+
   document.getElementById('reset-subject').addEventListener('click', () => {
     const subject = getSubject();
     subject.quarters.forEach(q =>
@@ -317,3 +361,18 @@ async function init() {
   render();
 }
 init();
+
+/* ── Header: bei Scroll nach unten ausblenden ───────────────────── */
+(function () {
+  let lastScrollY = 0;
+  const header = document.querySelector('.site-header');
+  window.addEventListener('scroll', function () {
+    const currentY = window.scrollY;
+    if (currentY > lastScrollY && currentY > 80) {
+      header.classList.add('header-hidden');
+    } else {
+      header.classList.remove('header-hidden');
+    }
+    lastScrollY = currentY;
+  }, { passive: true });
+}());
