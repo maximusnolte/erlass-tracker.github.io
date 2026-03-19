@@ -1,19 +1,5 @@
 /* ================================================================
    ABITUR CHECKLISTEN 2026 – App
-
-   ╔══════════════════════════════════════════════════════════════╗
-   ║  KONFIGURATION                                               ║
-   ║  Farben, Fächer und Inhalte lassen sich hier zentral ändern  ║
-   ╚══════════════════════════════════════════════════════════════╝
-
-   Jedes Fach-Objekt hat folgende konfigurierbaren Felder:
-     id     → Eindeutiger Bezeichner (kein Leerzeichen, kein Umlaut)
-     name   → Anzeigename im Tab und in der Überschrift
-     level  → z. B. "Leistungskurs" oder "Grundkurs"
-     color  → Hauptfarbe als HEX  (#rrggbb)  – Tab, Rahmen, Badges …
-     accent → Hellere Variante    (#rrggbb)  – Fortschrittsbalken
-     bg     → Sehr heller Ton     (#rrggbb)  – abgehaktes Element
-
    ================================================================ */
 
 
@@ -81,31 +67,32 @@ function formatLevel(level) {
   return level;
 }
 
+// GK sieht: gk-Topics + Topics ohne Level
+// LK sieht: alles (lk + gk + ohne Level)
+function isTopicVisible(topic, level) {
+  if (topic.level === 'lk' && level === 'gk') return false;
+  return true;
+}
+
 function countDone(section, level) {
   return section.topics.filter((topic, i) => {
-    if (topic.level === 'lk' && level === 'gk') return false;
-    if (topic.level === 'gk' && level === 'lk') return false;
+    if (!isTopicVisible(topic, level)) return false;
     return !!state.checked[`${section.id}_${i}`];
   }).length;
 }
 
 function calcSubjectProgress(subject) {
   const level = getEffectiveLevel(subject);
-  const total = subject.quarters.flatMap(q =>
-    q.sections.flatMap(s => s.topics.filter(t => {
-      if (t.level === 'lk' && level === 'gk') return false;
-      if (t.level === 'gk' && level === 'lk') return false;
-      return true;
-    }))
-  ).length;
-  const done  = subject.quarters.flatMap(q =>
+  const allTopics = subject.quarters.flatMap(q =>
+    q.sections.flatMap(s => s.topics.filter(t => isTopicVisible(t, level)))
+  );
+  const done = subject.quarters.flatMap(q =>
     q.sections.flatMap(s => s.topics.filter((t, i) => {
-      if (t.level === 'lk' && level === 'gk') return false;
-      if (t.level === 'gk' && level === 'lk') return false;
+      if (!isTopicVisible(t, level)) return false;
       return !!state.checked[`${s.id}_${i}`];
     }))
-  ).length;
-  return { total, done, pct: total ? (done / total) * 100 : 0 };
+  );
+  return { total: allTopics.length, done: done.length, pct: allTopics.length ? (done.length / allTopics.length) * 100 : 0 };
 }
 
 function setTheme(subject) {
@@ -178,7 +165,7 @@ function progressRing(pct, color) {
 let isInitialRender = true;
 
 function render() {
-  const subject       = getSubject();
+  const subject        = getSubject();
   const effectiveLevel = getEffectiveLevel(subject);
   setTheme(subject);
   renderTabs();
@@ -217,16 +204,11 @@ function render() {
 
     ${subject.quarters.map(quarter => {
       const qTotal = quarter.sections.flatMap(s =>
-        s.topics.filter(t => {
-          if (t.level === 'lk' && effectiveLevel === 'gk') return false;
-          if (t.level === 'gk' && effectiveLevel === 'lk') return false;
-          return true;
-        })
+        s.topics.filter(t => isTopicVisible(t, effectiveLevel))
       ).length;
-      const qDone  = quarter.sections.flatMap(s =>
+      const qDone = quarter.sections.flatMap(s =>
         s.topics.filter((t, i) => {
-          if (t.level === 'lk' && effectiveLevel === 'gk') return false;
-          if (t.level === 'gk' && effectiveLevel === 'lk') return false;
+          if (!isTopicVisible(t, effectiveLevel)) return false;
           return !!state.checked[`${s.id}_${i}`];
         })
       ).length;
@@ -243,13 +225,9 @@ function render() {
           </div>
 
           ${quarter.sections.map(section => {
-            const done          = countDone(section, effectiveLevel);
-            const visibleTopics = section.topics.filter(t => {
-              if (t.level === 'lk' && effectiveLevel === 'gk') return false;
-              if (t.level === 'gk' && effectiveLevel === 'lk') return false;
-              return true;
-            });
-            const allDone = done === visibleTopics.length;
+            const visibleTopics = section.topics.filter(t => isTopicVisible(t, effectiveLevel));
+            const done    = countDone(section, effectiveLevel);
+            const allDone = done === visibleTopics.length && visibleTopics.length > 0;
             const isOpen  = state.openSections[section.id] !== false;
 
             return `
@@ -263,12 +241,11 @@ function render() {
                 ${isOpen ? `
                   <div class="topics">
                     ${section.topics.map((topic, i) => {
-                      const isLK = topic.level === 'lk';
-                      const isGK = topic.level === 'gk';
-                      if (isLK && effectiveLevel === 'gk') return '';
-                      if (isGK && effectiveLevel === 'lk') return '';
+                      if (!isTopicVisible(topic, effectiveLevel)) return '';
                       const key       = `${section.id}_${i}`;
                       const isChecked = !!state.checked[key];
+                      const isLK      = topic.level === 'lk';
+                      const isGK      = topic.level === 'gk';
                       return `
                         <label class="topic ${isChecked ? 'checked' : ''}">
                           <input type="checkbox" data-topic-key="${key}" ${isChecked ? 'checked' : ''}>
@@ -320,20 +297,19 @@ function bindEvents() {
 
   document.querySelectorAll('[data-mark-section]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const id = btn.dataset.markSection;
+      const id      = btn.dataset.markSection;
       const subject = getSubject();
       const level   = getEffectiveLevel(subject);
-      let target = null;
+      let target    = null;
       subject.quarters.forEach(q => q.sections.forEach(s => { if (s.id === id) target = s; }));
       if (!target) return;
-      const allChecked = target.topics.every((t, i) => {
-        if (t.level === 'lk' && level === 'gk') return true;
-        if (t.level === 'gk' && level === 'lk') return true;
+      const visibleTopics = target.topics.filter(t => isTopicVisible(t, level));
+      const allChecked    = visibleTopics.every((t, vi) => {
+        const i = target.topics.indexOf(t);
         return !!state.checked[`${id}_${i}`];
       });
       target.topics.forEach((t, i) => {
-        if (t.level === 'lk' && level === 'gk') return;
-        if (t.level === 'gk' && level === 'lk') return;
+        if (!isTopicVisible(t, level)) return;
         state.checked[`${id}_${i}`] = !allChecked;
       });
       saveChecked();
