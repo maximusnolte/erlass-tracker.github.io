@@ -217,11 +217,16 @@ function render() {
 
     ${subject.quarters.map(quarter => {
       const qTotal = quarter.sections.flatMap(s =>
-        s.topics.filter(t => !(t.startsWith('[LK]') && effectiveLevel === 'gk'))
+        s.topics.filter(t => {
+          if (t.level === 'lk' && effectiveLevel === 'gk') return false;
+          if (t.level === 'gk' && effectiveLevel === 'lk') return false;
+          return true;
+        })
       ).length;
       const qDone  = quarter.sections.flatMap(s =>
         s.topics.filter((t, i) => {
-          if (t.startsWith('[LK]') && effectiveLevel === 'gk') return false;
+          if (t.level === 'lk' && effectiveLevel === 'gk') return false;
+          if (t.level === 'gk' && effectiveLevel === 'lk') return false;
           return !!state.checked[`${s.id}_${i}`];
         })
       ).length;
@@ -239,9 +244,11 @@ function render() {
 
           ${quarter.sections.map(section => {
             const done          = countDone(section, effectiveLevel);
-            const visibleTopics = effectiveLevel === 'gk'
-              ? section.topics.filter(t => !t.startsWith('[LK]'))
-              : section.topics;
+            const visibleTopics = section.topics.filter(t => {
+              if (t.level === 'lk' && effectiveLevel === 'gk') return false;
+              if (t.level === 'gk' && effectiveLevel === 'lk') return false;
+              return true;
+            });
             const allDone = done === visibleTopics.length;
             const isOpen  = state.openSections[section.id] !== false;
 
@@ -256,16 +263,17 @@ function render() {
                 ${isOpen ? `
                   <div class="topics">
                     ${section.topics.map((topic, i) => {
-                      const isLK = topic.startsWith('[LK]');
+                      const isLK = topic.level === 'lk';
+                      const isGK = topic.level === 'gk';
                       if (isLK && effectiveLevel === 'gk') return '';
+                      if (isGK && effectiveLevel === 'lk') return '';
                       const key       = `${section.id}_${i}`;
                       const isChecked = !!state.checked[key];
-                      const text      = isLK ? topic.replace('[LK] ', '') : topic;
                       return `
                         <label class="topic ${isChecked ? 'checked' : ''}">
                           <input type="checkbox" data-topic-key="${key}" ${isChecked ? 'checked' : ''}>
                           <span class="topicText">
-                            ${isLK ? '<span class="lkTag">LK</span>' : ''}${escapeHtml(text)}
+                            ${isLK ? '<span class="lkTag">LK</span>' : ''}${isGK ? '<span class="gkTag">GK</span>' : ''}${escapeHtml(topic.text)}
                           </span>
                         </label>
                       `;
@@ -319,11 +327,13 @@ function bindEvents() {
       subject.quarters.forEach(q => q.sections.forEach(s => { if (s.id === id) target = s; }));
       if (!target) return;
       const allChecked = target.topics.every((t, i) => {
-        if (t.startsWith('[LK]') && level === 'gk') return true;
+        if (t.level === 'lk' && level === 'gk') return true;
+        if (t.level === 'gk' && level === 'lk') return true;
         return !!state.checked[`${id}_${i}`];
       });
       target.topics.forEach((t, i) => {
-        if (t.startsWith('[LK]') && level === 'gk') return;
+        if (t.level === 'lk' && level === 'gk') return;
+        if (t.level === 'gk' && level === 'lk') return;
         state.checked[`${id}_${i}`] = !allChecked;
       });
       saveChecked();
