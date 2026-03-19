@@ -45,7 +45,7 @@ jobs:
           async function getRows(sheetTab, range = 'A:E') {
             const res = await sheets.spreadsheets.values.get({
               spreadsheetId: SPREADSHEET_ID,
-              range: `${sheetTab}!${range}`,   // section_title | quarter | topic_text | level (lk/gk/empty) | section_id
+              range: `'${sheetTab}'!${range}`,   // section_title | quarter | topic_text | level (lk/gk/empty) | section_id
             });
             return res.data.values || [];
           }
