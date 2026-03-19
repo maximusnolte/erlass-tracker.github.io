@@ -12,9 +12,9 @@
             "id": "deutsch_1.1",
             "title": "Q1.1 – Epochenumbruch 18./19. Jahrhundert",
             "topics": [
-              "Literarische Texte: Dramatik (z. B. Schiller, Kleist)",
-              "Schlüsselthemen der Weimarer Klassik",
-              "Schlüsselthemen der Romantik",
+              "Literarische Texte: Dramatik (z.B. Schiller, Kleist) oder Epik (z.B. Tieck, E.T.A. Hoffmann) und Lyrik (z.B. Goethe, Hölderlin, Günderrode, Eichendorff)",
+              "Schlüsselthemen der Weimarer Klassik (z.B. Idealisierung, Humanität, Kunstautonomie) sowie der Romantik (z.B. Phantasie, Traum, Seelenleben, Nachtseiten) und ihre literarische Bearbeitung",
+              "Programmatische Texte zu Sprache und Literatur (z.B. Humboldt, Schiller, Novalis, Schlegel)",
               "Romantik und Modernität"
             ]
           },
@@ -22,8 +22,20 @@
             "id": "deutsch_1.2",
             "title": "Q1.2 – Sprache, Medien, Wirklichkeit",
             "topics": [
-              "Audiovisuelle Medien und ihre Spezifika",
-              "Sprache und ihre Wirkung in Medien"
+              "Audiovisuelle oder auditive Medien (z.B. Spielfilm, Werbefilm, Videoclip; Lesung, Hörspiel) und ihre jeweiligen Spezifika (z.B. Kameraführung, Schnitt, Licht, Musik)",
+              "Sprache und ihre Wirkung in Medien (z.B. Syntax, Semantik, Pragmatik), insbesondere schriftlicher und mündlicher Sprachgebrauch politisch-gesellschaftlicher Kommunikation",
+              "Reflexion über Realitätskonstruktionen in unterschiedlichen Medienformaten",
+              "Pragmatische Texte zu sprachphilosophischen Fragestellungen, insbesondere linguistisches Relativitätsprinzip (Sapir-Whorf-Hypothese) und Kritik daran"
+            ]
+          },
+          {
+            "id": "deutsch_1.3",
+            "title": "Q1.3 – Natur als Imagination und Wirklichkeit",
+            "topics": [
+              "Exemplarische Naturlyrik vom 18. Jahrhundert bis zur Gegenwart (z.B. Goethe, Droste-Hülshoff, Kaschnitz, Kirsch)",
+              "Naturbilder im Vergleich (z.B. Natur als Seelenraum, bedrohliche oder bedrohte Natur)",
+              "Metaphorik der Natur (z.B. der Garten, der Wald, die Jahres- und Tageszeiten)",
+              "Pragmatische Texte über das Verhältnis von Natur und Mensch (z.B. philosophisch, tagesjournalistisch)"
             ]
           }
         ]
@@ -35,14 +47,522 @@
             "id": "deutsch_2.1",
             "title": "Q2.1 – Sprache und Öffentlichkeit",
             "topics": [
-              "Reden, Flugschriften oder Essays"
+              "Reden oder Flugschriften oder Essays in unterschiedlichen historischen, politischen und kommunikativen Kontexten",
+              "Argumentative Strukturen und persuasiv-manipulative Strategien, insbesondere politisch-gesellschaftliche Kommunikation zwischen Verständigung und Strategie",
+              "Eigene Beiträge zu komplexen Themen (z.B. Rede, Kommentar, materialgestütztes Schreiben)",
+              "Rhetorik (z.B. rhetorische Gattungen, Aufbau und Struktur einer Rede)"
             ]
           },
           {
-            "id": "\ndeutsch_2.2",
+            "id": "deutsch_2.2",
             "title": "Q2.2 – Soziales Drama und politisches Theater",
             "topics": [
-              "Ein soziales oder politisches Drama"
+              "Ein soziales oder politisches Drama aus dem 19. oder 20. Jahrhundert (z.B. Büchner, Brecht, Dürrenmatt, Jelinek)",
+              "Programmatische Positionen der Autorin oder des Autors des ausgewählten Dramas",
+              "Dramatische Realisierung und Aktualisierung (z.B. Theaterbesuch, Kritiken zu modernen Inszenierungen)",
+              "Vergleichende Betrachtung von Themen, Motiven und Dramenstrukturen (im offenen, geschlossenen Theater)"
+            ]
+          },
+          {
+            "id": "deutsch_2.3",
+            "title": "Q2.3 – Schriftsteller im Widerstand",
+            "topics": [
+              "Politisch engagierte Literatur des Widerstandes im Vormärz (z.B. Heine, Börne, Gutzkow)",
+              "Gesellschafts- und Systemkritik in pragmatischen Texten (z.B. Büchner)",
+              "Schlüsselthemen und ihre literarische Bearbeitung (z.B. Macht und Machtmissbrauch)",
+              "Exilliteraten und die Leitmotive ihres Schreibens (z.B. Joseph Roth, Stefan Zweig, Anna Seghers, Thomas Mann)"
+            ]
+          }
+        ]
+      },
+      {
+        "q": "Q3",
+        "sections": [
+          {
+            "id": "deutsch_3.1",
+            "title": "Q3.1 – Subjektivität und Verantwortung",
+            "topics": [
+              "Eine Ganzschrift oder mehrere kürzere Texte zu Subjektivität, Verantwortung und anthropologischen Grundfragen (z.B. Goethe, Hesse, Frisch, Genazino)",
+              "Thematische Spiegelungen in pragmatischen Texten (z.B. homo superior, homo faber, homo patiens)",
+              "Literarische Stoffe und Motive der europäischen Tradition (z.B. Prometheus, Narziss, Antigone, Faust)"
+            ]
+          },
+          {
+            "id": "deutsch_3.2",
+            "title": "Q3.2 – Epochenumbruch 19./20. Jahrhundert",
+            "topics": [
+              "Texte der literarischen Moderne: Epik (z.B. Schnitzler, Döblin, Kafka, Musil) oder Dramatik (z.B. Wedekind, Brecht, Horvath) und Lyrik",
+              "Literaturgeschichtliche Strömungen zwischen Naturalismus und Expressionismus im Überblick sowie neue Formen des Erzählens",
+              "Schlüsselthemen der Epoche, insbesondere Spiegelung kulturgeschichtlicher Entwicklungen in der Literatur",
+              "Programmatische Texte (z.B. Nietzsche, Freud, Simmel, Pinthus)",
+              "Thematische Spiegelungen in literarischen oder pragmatischen Texten der Gegenwart (z.B. Pluralität, Psychologisierung, Fortschrittskritik)"
+            ]
+          },
+          {
+            "id": "deutsch_3.4",
+            "title": "Q3.4 – Sprache und Identität",
+            "topics": [
+              "Texte zu Sprache und Fremdheitserfahrung, Sprachreflexion und Sprachexperimente, insbesondere in der Zeit um 1900",
+              "Pragmatische Texte zu Sprache, Bildung und Entwicklung (z.B. Spracherwerb, Mehrsprachigkeit, klassisch-humanistische Bildungsidee)",
+              "Literarische Texte zu Sprachlosigkeit und Sprachkritik in der literarischen Moderne um 1900 (z.B. Rilke, Hofmannsthal, Benn, Morgenstern)"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "englisch",
+    "name": "Englisch",
+    "level": "lk",
+    "color": "#D4A017",
+    "quarters": [
+      {
+        "q": "Q1",
+        "sections": [
+          {
+            "id": "englisch_1.1",
+            "title": "Q1.1 – The USA: Formation of a Nation",
+            "topics": [
+              "Development and principles of American democracy, insbesondere \"life, liberty and the pursuit of happiness\"",
+              "Landmarks of American history, insbesondere Civil Rights Movement, Black Lives Matter",
+              "Recent political and social developments"
+            ]
+          },
+          {
+            "id": "englisch_1.2",
+            "title": "Q1.2 – Living in American Society",
+            "topics": [
+              "Migration and the American Dream, insbesondere questions of identity",
+              "Values and beliefs (z.B. Patriotismus)"
+            ]
+          },
+          {
+            "id": "englisch_1.3",
+            "title": "Q1.3 – Manifestation of Individualism",
+            "topics": [
+              "The American Dream as a manifestation of individualism, insbesondere conformity vs. individualism, ambitions and obstacles",
+              "Visions and nightmares: individuelle Schicksale und Reglementierung von Waffenbesitz"
+            ]
+          }
+        ]
+      },
+      {
+        "q": "Q2",
+        "sections": [
+          {
+            "id": "englisch_3.5",
+            "title": "Q3.5 – Globalization (in Q2)",
+            "topics": [
+              "Resources and the future of energy / sustainability, insbesondere global chances and challenges",
+              "Globalization and the economy, insbesondere chances and challenges of digitalization",
+              "Making globalization work, outsourcing, consumption; chances and challenges of digitalization"
+            ]
+          },
+          {
+            "id": "englisch_2.1",
+            "title": "Q2.1 – Great Britain: Past and Present",
+            "topics": [
+              "Great Britain – tradition and change, insbesondere British Empire und Brexit",
+              "Being British: national identity and national stereotypes",
+              "Elizabethan England – an introduction to the Golden Age (z.B. Epochenmerkmale, Entwicklung des Theaters)"
+            ]
+          },
+          {
+            "id": "englisch_2.2",
+            "title": "Q2.2 – Ethnic Diversity",
+            "topics": [
+              "Great Britain as a multicultural society, insbesondere Auswirkungen der kolonialen Vergangenheit",
+              "Prejudice and the one-track mind",
+              "Integration versus assimilation"
+            ]
+          }
+        ]
+      },
+      {
+        "q": "Q3",
+        "sections": [
+          {
+            "id": "englisch_3.1",
+            "title": "Q3.1 – Human Dilemmas",
+            "topics": [
+              "Extreme situations: der Kampf ums Überleben",
+              "Being different (Anderssein)",
+              "Drama by William Shakespeare, insbesondere Macbeth"
+            ]
+          },
+          {
+            "id": "englisch_3.3",
+            "title": "Q3.3 – Gender Issues",
+            "topics": [
+              "Gender and identity, insbesondere gender roles, gender inequality",
+              "Culture and gender – now and then: Genderkonstruktionen in der Werbung",
+              "Schönheitsideale im Wandel (Sonette von Shakespeare), Genderkonstruktionen in der Werbung",
+              "Gender issues in the arts: Darstellungen von Geschlechterrollen in der Kunst oder Musik"
+            ]
+          },
+          {
+            "id": "englisch_4.2",
+            "title": "Q4.2 – The Media (in Q3)",
+            "topics": [
+              "Diversity of the media, insbesondere traditional and modern media, Social Media und neue Berufsbilder (z.B. The Circle)",
+              "The power of the media, insbesondere impact on the individual and society (z.B. The Circle)",
+              "Making reality – faking reality: information, entertainment, manipulation, Verlässlichkeit von Informationen (z.B. The Circle)",
+              "Communication: kritischer Umgang mit Kommunikationsstrategien"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mathe",
+    "name": "Mathematik",
+    "level": "gk",
+    "color": "#4CAF7D",
+    "quarters": [
+      {
+        "q": "Q1",
+        "sections": [
+          {
+            "id": "mathe_1.1",
+            "title": "Q1.1 – Einführung in die Integralrechnung",
+            "topics": [
+              "Einführung in die Integralrechnung"
+            ]
+          },
+          {
+            "id": "mathe_1.2",
+            "title": "Q1.2 – Anwendungen der Integralrechnung",
+            "topics": [
+              "Anwendungen der Integralrechnung"
+            ]
+          },
+          {
+            "id": "mathe_1.3",
+            "title": "Q1.3 – Vertiefung der Differenzial- und Integralrechnung",
+            "topics": [
+              "Vertiefung der Differenzial- und Integralrechnung (inkl. Grenzwert von Funktionen)"
+            ]
+          },
+          {
+            "id": "mathe_1.4",
+            "title": "Q1.4 – Funktionenscharen",
+            "topics": [
+              "Funktionenscharen"
+            ]
+          }
+        ]
+      },
+      {
+        "q": "Q2",
+        "sections": [
+          {
+            "id": "mathe_2.1",
+            "title": "Q2.1 – Lineare Gleichungssysteme",
+            "topics": [
+              "Lineare Gleichungssysteme (LGS)"
+            ]
+          },
+          {
+            "id": "mathe_2.2",
+            "title": "Q2.2 – Orientieren und Bewegen im Raum",
+            "topics": [
+              "Orientieren und Bewegen im Raum"
+            ]
+          },
+          {
+            "id": "mathe_2.3",
+            "title": "Q2.3 – Geraden und Ebenen im Raum",
+            "topics": [
+              "Geraden und Ebenen im Raum (inkl. Lagebeziehungen und Winkelberechnung)"
+            ]
+          },
+          {
+            "id": "mathe_2.4",
+            "title": "Q2.4 – Matrizen (nur LK)",
+            "topics": [
+              "Matrizen zur Beschreibung von Übergangsprozessen"
+            ]
+          },
+          {
+            "id": "mathe_2.6",
+            "title": "Q2.6 – Vertiefung Analytische Geometrie (nur GK)",
+            "topics": [
+              "Vertiefung der Analytischen Geometrie (inkl. Normalenvektor einer Ebene)"
+            ]
+          }
+        ]
+      },
+      {
+        "q": "Q3",
+        "sections": [
+          {
+            "id": "mathe_3.1",
+            "title": "Q3.1 – Grundlegende Begriffe der Stochastik",
+            "topics": [
+              "Grundlegende Begriffe der Stochastik"
+            ]
+          },
+          {
+            "id": "mathe_3.2",
+            "title": "Q3.2 – Berechnung von Wahrscheinlichkeiten",
+            "topics": [
+              "Berechnung von Wahrscheinlichkeiten"
+            ]
+          },
+          {
+            "id": "mathe_3.3",
+            "title": "Q3.3 – Wahrscheinlichkeitsverteilungen",
+            "topics": [
+              "Wahrscheinlichkeitsverteilungen (inkl. kumulierte Binomialverteilung und inverse Fragestellung)",
+              "Berechnung von Wahrscheinlichkeiten normalverteilter Zufallsgrößen mittels digitaler Werkzeuge (inkl. inverse Fragestellung)"
+            ]
+          },
+          {
+            "id": "mathe_3.4",
+            "title": "Q3.4 – Hypothesentests",
+            "topics": [
+              "Hypothesentests für binomialverteilte Zufallsgrößen (inkl. Bestimmung des Ablehnungsbereichs mit WTR/CAS)"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "bio",
+    "name": "Biologie",
+    "level": "gk",
+    "color": "#3A7BD5",
+    "quarters": [
+      {
+        "q": "Q1",
+        "sections": [
+          {
+            "id": "bio_1.1",
+            "title": "Q1.1 – Von der DNA zum Protein",
+            "topics": [
+              "Aufbau und Replikation der DNA: Watson-Crick-Modell, Nukleotide, semikonservative Replikation, kontinuierliche und diskontinuierliche Replikation",
+              "Ablauf und Ort der Proteinbiosynthese: Transkription, mRNA, Translation bei Prokaryoten, Ribosom, tRNA, genetischer Code",
+              "Vier Strukturebenen der Proteine",
+              "Proteinbiosynthese bei Eukaryoten: Processing",
+              "Bau und Vermehrung von DNA- und RNA-Viren (Prinzip)"
+            ]
+          },
+          {
+            "id": "bio_1.2",
+            "title": "Q1.2 – Gene und Gentechnik",
+            "topics": [
+              "Bau und Vermehrung von Bakterien",
+              "Regulation der Genaktivität: Operonmodell/Jacob-Monod-Modell am Beispiel des Lac-Operons",
+              "Genmutationen (Substitution, Deletion, Insertion, Duplikation)",
+              "Evolutionsaspekt: Auswirkungen von Genmutationen auf Phänotyp und Organismus",
+              "Genetischer Fingerabdruck (Übersicht): Restriktionsenzyme, PCR und Gelelektrophorese",
+              "Neukombination von Genen: Fremd-DNA in Wirtszellen (Plasmide als Vektoren), Klonierung",
+              "Regulation der Genaktivität bei Eukaryoten: Transkriptionsfaktoren, epigenetische Modifikation durch DNA-Methylierung"
+            ]
+          },
+          {
+            "id": "bio_1.3",
+            "title": "Q1.3 – Humangenetik",
+            "topics": [
+              "Erbgänge: monohybrid, autosomal, gonosomal, dominant-rezessiv einschließlich Analyse von Stammbäumen",
+              "Krebs: Mutationen an Proto-Onkogenen und Tumor-Suppressorgenen als Ursachen"
+            ]
+          }
+        ]
+      },
+      {
+        "q": "Q2",
+        "sections": [
+          {
+            "id": "bio_2.1",
+            "title": "Q2.1 – Strukturierung von Ökosystemen",
+            "topics": [
+              "Abiotische Faktoren und deren Einfluss (Übersicht): Temperatur, Licht, Wasser, RGT-Regel, Toleranzkurven, physiologische und ökologische Potenz",
+              "Biotische Faktoren (Übersicht): intra- und interspezifische Konkurrenz, Parasitismus, Symbiose, Räuber-Beute-Beziehung",
+              "Ökologische Nische; evolutionsbiologischer Aspekt: Ökofaktoren als Selektionsfaktoren",
+              "Stoffkreislauf und Trophieebenen am Beispiel des Kohlenstoffkreislaufes: Produzenten, Konsumenten, Destruenten",
+              "Energiefluss: Nahrungsbeziehungen (Nahrungskette, Nahrungsnetz); Nachhaltigkeit am Beispiel des Ökosystems",
+              "Thermoregulation ausgewählter Organismen: Ektothermie und Endothermie"
+            ]
+          },
+          {
+            "id": "bio_2.2",
+            "title": "Q2.2 – Fotosynthese und Zellatmung",
+            "topics": [
+              "Blattaufbau mesophyter Pflanzen, Chloroplast als Ort der Fotosynthese",
+              "Lichtabsorption: Chlorophyll-Absorptionsspektrum",
+              "Primärreaktion/lichtabhängige Reaktionen (Schema): Fotolyse, Z-Schema ohne zyklische Phosphorylierung",
+              "Sekundärreaktion/lichtunabhängige Reaktionen (Schema): Funktion von Rubisco, vollständige Summengleichung",
+              "Zellatmung: Aufbau von Mitochondrien, Edukte und Produkte der vier Teilschritte (Glykolyse, Citratcyclus, Endoxidation), Summengleichung",
+              "Primärreaktion: Lichtsammelfalle (Prinzip), chemiosmotisches Modell (Schema, Protonengradient)",
+              "Sekundärreaktion: Funktion von NADPH + H⁺ und ATP bei der Reduktion von PGS zu PGA"
+            ]
+          },
+          {
+            "id": "bio_2.3",
+            "title": "Q2.3 – Wechselbeziehungen Umwelt und Mensch",
+            "topics": [
+              "Klimawandel: Treibhauseffekt, Bedeutung von Kohlenstoffdioxid und Methan",
+              "Anreicherung und Wirkung eines Schadstoffs (Prinzip) an einem Beispiel",
+              "Nachhaltige Entwicklung am Beispiel des ökologischen Fußabdrucks"
+            ]
+          }
+        ]
+      },
+      {
+        "q": "Q3",
+        "sections": [
+          {
+            "id": "bio_3.1",
+            "title": "Q3.1 – Neurobiologie",
+            "topics": [
+              "Bau und Funktion der Nervenzelle: Ruhepotenzial, Aktionspotenzial, Erregungsleitung, Transmitterwirkung (Acetylcholin-Synapsen), Stoffeinwirkung (insbesondere Curare)",
+              "Verarbeitung des Informationsflusses an Synapsen (EPSP, IPSP, räumliche und zeitliche Summation)",
+              "Sinnesorgan Auge (Aufbau, Signaltransduktion in der Netzhaut), sensorische und motorische Nervenbahnen, neuromuskuläre Synapse",
+              "Second-messenger-Vorgänge (Prinzip)"
+            ]
+          },
+          {
+            "id": "bio_3.2",
+            "title": "Q3.2 – Verhaltensbiologie",
+            "topics": [
+              "Proximate und ultimate Ursachen von Verhalten (Prinzip)",
+              "Angeborenes Verhalten: Reflex, Erbkoordination; endogene Faktoren: Handlungsbereitschaft; exogener Faktor: Schlüsselreiz",
+              "Lernformen (Übersicht): klassische Konditionierung, operante Konditionierung, Nachahmungslernen, Prägung",
+              "Verhaltensökologie (Prinzip): Angepasstheit von Verhalten an ökologische Bedingungen, Kosten-Nutzen-Bilanz",
+              "Soziobiologie (Prinzip): evolutionsbiologische Funktion des sozialen Verhaltens am Beispiel der elterlichen Investition",
+              "Komplexe Lernformen: Kognition mit Werkzeuggebrauch (Prinzip)"
+            ]
+          },
+          {
+            "id": "bio_3.3",
+            "title": "Q3.3 – Neurologische Erkrankungen",
+            "topics": [
+              "Neurologisch bedingte Erkrankungen des Menschen (Prinzip, insbesondere Alzheimer)",
+              "Differenzierte Betrachtung zellulärer und molekularer Vorgänge bei neurologischen Erkrankungen an einem Beispiel"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "powi",
+    "name": "Politik u. Wirtschaft",
+    "level": "gk",
+    "color": "#9B59B6",
+    "quarters": [
+      {
+        "q": "Q1",
+        "sections": [
+          {
+            "id": "powi_1.1",
+            "title": "Q1.1 – Verfassung und Verfassungswirklichkeit",
+            "topics": [
+              "Grundrechte und Rechtsstaatlichkeit in der Verfassung (insbesondere Art. 1, 20, 79 GG)",
+              "Parlament, Länderkammer, Bundesregierung und Europäische Institutionen im Gesetzgebungsprozess (Spannungsfeld Exekutive – Legislative)",
+              "Rolle des Bundesverfassungsgerichts (Spannungsfeld Legislative – Judikative)",
+              "Veränderung des Grundgesetzes aufgrund gesellschaftlicher Wandlungsprozesse anhand eines Beispiels",
+              "Das politische Mehrebenensystem vor dem Hintergrund politischer Theorien zur Gewaltenteilung (z.B. Montesquieu, Locke)"
+            ]
+          },
+          {
+            "id": "powi_1.2",
+            "title": "Q1.2 – Herausforderungen der Parteiendemokratie",
+            "topics": [
+              "Politische Parteien als klassische Möglichkeiten der Partizipation (insbesondere Aufgaben, Funktionen und Populismus)",
+              "Alternative Formen politischer Beteiligung (z.B. Volksentscheid)",
+              "Nationale Wahlen und Wahl des Europaparlaments, Bildung der jeweiligen Exekutive",
+              "Modelle des Wählerverhaltens, Wahlforschung",
+              "Veränderungen von Parteiensystem und Parteientypen, innerparteiliche Demokratie",
+              "Identitäre versus Repräsentative Demokratie; Demokratietheorien der Gegenwart"
+            ]
+          },
+          {
+            "id": "powi_1.4",
+            "title": "Q1.4 – Öffentlichkeit im Wandel",
+            "topics": [
+              "Aufgaben, Funktionen und Probleme klassischer politischer Massenmedien",
+              "Chancen und Risiken neuer politischer Kommunikationsformen im Internet, insbesondere Filterblasen, Fake News",
+              "Veränderungen im Verhältnis von Massenmedien und politischen Akteuren (z.B. Personalisierung, Medienethik)",
+              "Medien als Wirtschaftsunternehmen; Pluralisierung und Fragmentierung politischer Öffentlichkeit"
+            ]
+          }
+        ]
+      },
+      {
+        "q": "Q2",
+        "sections": [
+          {
+            "id": "powi_2.1",
+            "title": "Q2.1 – Konjunkturanalyse und Konjunkturpolitik",
+            "topics": [
+              "Beobachtung, Analyse und Prognose wirtschaftlicher Konjunktur durch Wirtschaftsforschungsinstitute",
+              "Grundlagen der keynesianischen Konzeption (Krisenanalyse, effektive Gesamtnachfrage, Rolle des Staates, Multiplikatoreffekt)",
+              "Möglichkeiten nachfrageorientierter Politik (insbesondere Fiskalpolitik, Geldpolitik)",
+              "Probleme nachfrageorientierter Fiskalpolitik, insbesondere Inflation und Staatsverschuldung",
+              "Erklärungsmodelle konjunktureller Schwankungen (güterwirtschaftliche und monetäre)"
+            ]
+          },
+          {
+            "id": "powi_2.2",
+            "title": "Q2.2 – Nachhaltiges Wachstum und fairer Wettbewerb",
+            "topics": [
+              "Bedeutung und Bestimmungsfaktoren mittel- und langfristigen Wirtschaftswachstums",
+              "Grundlagen der neoklassischen Konzeption, wirtschaftspolitische Gestaltung von Angebotsbedingungen",
+              "Ziele und Prinzipien angebotsorientierter Wirtschaftspolitik",
+              "Wettbewerbsfähigkeit von Staaten und Regionen im europäischen Binnenmarkt",
+              "Wettbewerb in unterschiedlichen Marktformen, wirtschaftliche Konzentrationsprozesse",
+              "Wettbewerbspolitik der Europäischen Union"
+            ]
+          },
+          {
+            "id": "powi_2.4",
+            "title": "Q2.4 – Arbeitsmarkt und Tarifpolitik",
+            "topics": [
+              "Entwicklung von Beschäftigung, insbesondere Fachkräftemangel",
+              "Vergleichende Analyse arbeitsmarktpolitischer Instrumente",
+              "Tarifvertragsparteien, Tarifpolitik und Tarifautonomie",
+              "Entwicklung der Einkommens- und Vermögensverteilung; konkurrierende Gerechtigkeitsbegriffe",
+              "Bestimmungsgründe für Angebot und Nachfrage von Arbeitskräften und deren wirtschaftspolitische Steuerung"
+            ]
+          }
+        ]
+      },
+      {
+        "q": "Q3",
+        "sections": [
+          {
+            "id": "powi_3.1",
+            "title": "Q3.1 – Internationale Konflikte",
+            "topics": [
+              "Analyse eines aktuellen Konfliktes (Nationalstaaten/failed states/transnational) und unterschiedlicher Konfliktarten sowie deren Folgen",
+              "Ziele und Strategien deutscher Außen- und Sicherheitspolitik zur Konfliktbearbeitung",
+              "Möglichkeiten kollektiver Konfliktbearbeitung im Rahmen internationaler Institutionen (insbesondere UNO, NATO)",
+              "Ausgewählte Theorien der internationalen Politik (Realismus, Idealismus, Institutionalismus)"
+            ]
+          },
+          {
+            "id": "powi_3.2",
+            "title": "Q3.2 – Strukturwandel der Weltwirtschaft",
+            "topics": [
+              "Überblick über Entgrenzung und Verflechtung von Nationalökonomien (Außenhandel, Währungsräume, Kapitalmärkte)",
+              "Globalisierung von Unternehmen und Produktionsprozessen (Standortfaktoren und Standortwettbewerb)",
+              "Staaten zwischen Wohlfahrtsstaat und Wettbewerbsstaat",
+              "Auseinandersetzung mit Kontroversen um die Gestaltung der Weltwirtschaftsordnung (WTO, Handelspolitik)"
+            ]
+          },
+          {
+            "id": "powi_3.5",
+            "title": "Q3.5 – Weltumweltpolitik",
+            "topics": [
+              "Wechselwirkungen globaler ökologischer und ökonomischer Herausforderungen (z.B. Weltklimawandel)",
+              "Ziele, Interessen und Strategien staatlicher und privater Akteure der internationalen Umweltpolitik",
+              "Internationale Umweltpolitik im Spannungsfeld von Kooperation und Verteilungskonflikten",
+              "Zielkonflikte und institutionelle Schwierigkeiten globaler Umweltpolitik"
             ]
           }
         ]
