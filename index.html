@@ -8,7 +8,10 @@
 
   <!-- Apple-like component styles & theming -->
   <link rel="stylesheet" href="styles.css" />
-   <script async src="https://cdn.counter.dev/script.js" data-id="c1f00682-f453-4af4-be9e-db0435e89b09" data-utcoffset="1"></script>
+
+  <!-- Optional analytics script (non-blocking) -->
+  <link rel="preconnect" href="https://cdn.counter.dev" crossorigin />
+  <script async src="https://cdn.counter.dev/script.js" data-id="c1f00682-f453-4af4-be9e-db0435e89b09" data-utcoffset="1"></script>
 </head>
 <body>
 
@@ -46,6 +49,6 @@
     </div>
   </footer>
 
-  <script src="app.bundle.js"></script>
+  <script defer src="app.bundle.js"></script>
 </body>
 </html>

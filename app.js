@@ -1,63 +1,87 @@
 /* ================================================================
-   ABITUR CHECKLISTEN 2026 – App
+   ABITUR CHECKLISTEN 2026 - App
    ================================================================ */
-
-import confetti from 'canvas-confetti';
-
 
 /* ================================================================
    ZUSTAND & PERSISTENZ
    ================================================================ */
 
 const STORAGE_KEY = 'abitur-checklisten-2026-offline-v1';
-const UI_KEY      = 'abitur-checklisten-2026-ui-v1';
-const CONFETTI_DELAY_MS = 800;
+const UI_KEY = 'abitur-checklisten-2026-ui-v1';
+const SAVE_DEBOUNCE_MS = 120;
 
 const state = {
-  checked:        {},
-  openSections:   {},
-  activeSubject:  'deutsch',
-  subjectLevels:  {}
+  checked: {},
+  openSections: {},
+  activeSubject: 'deutsch',
+  subjectLevels: {}
 };
 
-let shouldAnimateSubjectSwitch = false;
+let subjects = [];
 let renderQueued = false;
+let isInitialRender = true;
+let checkedSaveTimer = null;
+let uiSaveTimer = null;
 
-const previousProgress = {
-  subjectPctById: {},
-  quarterPctByKey: {}
+const dom = {
+  tabs: null,
+  app: null
 };
 
-function loadState() {
+function safeParseObject(rawValue) {
   try {
-    const savedChecked = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    const savedUi      = JSON.parse(localStorage.getItem(UI_KEY)      || '{}');
-    state.checked      = savedChecked && typeof savedChecked === 'object' ? savedChecked : {};
-    state.openSections = savedUi.openSections && typeof savedUi.openSections === 'object'
-                           ? savedUi.openSections : {};
-    state.subjectLevels = savedUi.subjectLevels && typeof savedUi.subjectLevels === 'object'
-                           ? savedUi.subjectLevels : {};
-    if (savedUi.activeSubject && subjects.some(s => s.id === savedUi.activeSubject)) {
-      state.activeSubject = savedUi.activeSubject;
-    }
-  } catch (e) {
-    state.checked       = {};
-    state.openSections  = {};
-    state.subjectLevels = {};
-    state.activeSubject = 'deutsch';
+    const parsed = JSON.parse(rawValue || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    return {};
   }
 }
 
-function saveChecked() {
+function loadState() {
+  const savedChecked = safeParseObject(localStorage.getItem(STORAGE_KEY));
+  const savedUi = safeParseObject(localStorage.getItem(UI_KEY));
+
+  state.checked = savedChecked;
+  state.openSections = savedUi.openSections && typeof savedUi.openSections === 'object'
+    ? savedUi.openSections
+    : {};
+  state.subjectLevels = savedUi.subjectLevels && typeof savedUi.subjectLevels === 'object'
+    ? savedUi.subjectLevels
+    : {};
+
+  if (savedUi.activeSubject && subjects.some(subject => subject.id === savedUi.activeSubject)) {
+    state.activeSubject = savedUi.activeSubject;
+  }
+}
+
+function flushCheckedSave() {
+  if (checkedSaveTimer) {
+    window.clearTimeout(checkedSaveTimer);
+    checkedSaveTimer = null;
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.checked));
 }
 
-function saveUi() {
+function flushUiSave() {
+  if (uiSaveTimer) {
+    window.clearTimeout(uiSaveTimer);
+    uiSaveTimer = null;
+  }
   localStorage.setItem(UI_KEY, JSON.stringify({
-    activeSubject:  state.activeSubject,
-    openSections:   state.openSections,
-    subjectLevels:  state.subjectLevels
+    activeSubject: state.activeSubject,
+    openSections: state.openSections,
+    subjectLevels: state.subjectLevels
   }));
+}
+
+function saveChecked() {
+  if (checkedSaveTimer) return;
+  checkedSaveTimer = window.setTimeout(flushCheckedSave, SAVE_DEBOUNCE_MS);
+}
+
+function saveUi() {
+  if (uiSaveTimer) return;
+  uiSaveTimer = window.setTimeout(flushUiSave, SAVE_DEBOUNCE_MS);
 }
 
 /* ================================================================
@@ -65,7 +89,7 @@ function saveUi() {
    ================================================================ */
 
 function getSubject() {
-  return subjects.find(s => s.id === state.activeSubject) || subjects[0];
+  return subjects.find(subject => subject.id === state.activeSubject) || subjects[0];
 }
 
 function getEffectiveLevel(subject) {
@@ -78,89 +102,31 @@ function formatLevel(level) {
   return level;
 }
 
-// GK sieht: gk-Topics + Topics ohne Level
-// LK sieht: alles (lk + gk + ohne Level)
 function isTopicVisible(topic, level) {
-  if (topic.level === 'lk' && level === 'gk') return false;
-  return true;
+  return !(topic.level === 'lk' && level === 'gk');
+}
+
+function getTopicKey(sectionId, topicIndex) {
+  return `${sectionId}_${topicIndex}`;
+}
+
+function countVisibleTopics(section, level) {
+  let total = 0;
+  for (let topicIndex = 0; topicIndex < section.topics.length; topicIndex += 1) {
+    if (isTopicVisible(section.topics[topicIndex], level)) {
+      total += 1;
+    }
+  }
+  return total;
 }
 
 function countDone(section, level) {
   let done = 0;
-  for (let i = 0; i < section.topics.length; i += 1) {
-    const topic = section.topics[i];
-    if (!isTopicVisible(topic, level)) continue;
-    if (state.checked[`${section.id}_${i}`]) done += 1;
+  for (let topicIndex = 0; topicIndex < section.topics.length; topicIndex += 1) {
+    if (!isTopicVisible(section.topics[topicIndex], level)) continue;
+    if (state.checked[getTopicKey(section.id, topicIndex)]) done += 1;
   }
   return done;
-}
-
-function getQuarterKey(subjectId, quarterIndex) {
-  return `${subjectId}__q${quarterIndex}`;
-}
-
-function getQuarterStats(quarter, level) {
-  const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
-  let total = 0;
-  let done = 0;
-  for (let sIndex = 0; sIndex < sections.length; sIndex += 1) {
-    const section = sections[sIndex];
-    for (let tIndex = 0; tIndex < section.topics.length; tIndex += 1) {
-      const topic = section.topics[tIndex];
-      if (!isTopicVisible(topic, level)) continue;
-      total += 1;
-      if (state.checked[`${section.id}_${tIndex}`]) done += 1;
-    }
-  }
-  const pct = total ? (done / total) * 100 : 0;
-  return { total, done, pct, complete: total > 0 && done === total };
-}
-
-function getQuarterCompletionMap(subject, level) {
-  const map = {};
-  subject.quarters.forEach((quarter, index) => {
-    const key = getQuarterKey(subject.id, index);
-    map[key] = getQuarterStats(quarter, level).complete;
-  });
-  return map;
-}
-
-function pulseQuarterBadge(subjectId, quarterIndex) {
-  const quarterKey = getQuarterKey(subjectId, quarterIndex);
-  const badge = document.querySelector(`[data-quarter-key="${quarterKey}"] .quarterBadge`);
-  if (!badge) return;
-  badge.classList.remove('quarterCelebrate');
-  void badge.offsetWidth;
-  badge.classList.add('quarterCelebrate');
-  window.setTimeout(() => badge.classList.remove('quarterCelebrate'), 1000);
-}
-
-function scheduleQuarterConfetti(subjectId, quarterIndex) {
-  window.setTimeout(() => {
-    if (state.activeSubject !== subjectId) return;
-    const subject = subjects.find(s => s.id === subjectId);
-    if (!subject) return;
-
-    const level = getEffectiveLevel(subject);
-    const quarter = subject.quarters[quarterIndex];
-    if (!quarter) return;
-    if (!getQuarterStats(quarter, level).complete) return;
-
-    const colors = [subject.color || '#1d3461', subject.accent || '#2563eb', '#ffffff', '#ffd166'];
-    confetti({ particleCount: 45, spread: 58, origin: { y: 0.72 }, colors, scalar: 0.9 });
-    confetti({ particleCount: 35, spread: 78, origin: { y: 0.72, x: 0.65 }, colors, scalar: 0.9 });
-    pulseQuarterBadge(subjectId, quarterIndex);
-  }, CONFETTI_DELAY_MS);
-}
-
-function celebrateCompletedQuarters(subject, level, beforeMap) {
-  const afterMap = getQuarterCompletionMap(subject, level);
-  subject.quarters.forEach((_, quarterIndex) => {
-    const key = getQuarterKey(subject.id, quarterIndex);
-    if (!beforeMap[key] && afterMap[key]) {
-      scheduleQuarterConfetti(subject.id, quarterIndex);
-    }
-  });
 }
 
 function calcSubjectProgress(subject) {
@@ -168,21 +134,37 @@ function calcSubjectProgress(subject) {
   let total = 0;
   let done = 0;
 
-  for (let qIndex = 0; qIndex < subject.quarters.length; qIndex += 1) {
-    const quarter = subject.quarters[qIndex];
+  for (let quarterIndex = 0; quarterIndex < subject.quarters.length; quarterIndex += 1) {
+    const quarter = subject.quarters[quarterIndex];
     const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
-    for (let sIndex = 0; sIndex < sections.length; sIndex += 1) {
-      const section = sections[sIndex];
-      for (let tIndex = 0; tIndex < section.topics.length; tIndex += 1) {
-        const topic = section.topics[tIndex];
+
+    for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex += 1) {
+      const section = sections[sectionIndex];
+      for (let topicIndex = 0; topicIndex < section.topics.length; topicIndex += 1) {
+        const topic = section.topics[topicIndex];
         if (!isTopicVisible(topic, level)) continue;
         total += 1;
-        if (state.checked[`${section.id}_${tIndex}`]) done += 1;
+        if (state.checked[getTopicKey(section.id, topicIndex)]) done += 1;
       }
     }
   }
 
-  return { total, done, pct: total ? (done / total) * 100 : 0 };
+  return {
+    total,
+    done,
+    pct: total ? (done / total) * 100 : 0
+  };
+}
+
+function findSectionById(subject, sectionId) {
+  for (let quarterIndex = 0; quarterIndex < subject.quarters.length; quarterIndex += 1) {
+    const quarter = subject.quarters[quarterIndex];
+    const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+    for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex += 1) {
+      if (sections[sectionIndex].id === sectionId) return sections[sectionIndex];
+    }
+  }
+  return null;
 }
 
 function requestRender() {
@@ -196,117 +178,173 @@ function requestRender() {
 
 function setTheme(subject) {
   const root = document.documentElement;
-  root.style.setProperty('--subject-color',  subject.color  || '#1d3461');
+  root.style.setProperty('--subject-color', subject.color || '#1d3461');
   root.style.setProperty('--subject-accent', subject.accent || subject.color || '#2563eb');
-  root.style.setProperty('--subject-bg',     subject.bg     || '#eef2fb');
+  root.style.setProperty('--subject-bg', subject.bg || '#eef2fb');
 }
 
 function escapeHtml(str) {
   return String(str)
-    .replace(/&/g,  '&amp;')
-    .replace(/</g,  '&lt;')
-    .replace(/>/g,  '&gt;')
-    .replace(/"/g,  '&quot;')
-    .replace(/'/g,  '&#039;');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 /* ================================================================
-   RENDER – TABS
+   RENDER
    ================================================================ */
 
 function renderTabs() {
-  const tabs = document.getElementById('tabs');
-  tabs.innerHTML = subjects.map(subject => {
-    const lvl = getEffectiveLevel(subject).toUpperCase();
+  dom.tabs.innerHTML = subjects.map(subject => {
+    const level = getEffectiveLevel(subject).toUpperCase();
     return `
       <button
         class="tab ${subject.id === state.activeSubject ? 'active' : ''}"
         data-subject="${subject.id}"
         style="--tab-color:${subject.color}"
-      >${escapeHtml(subject.name)} · ${lvl}</button>
+      >${escapeHtml(subject.name)} · ${level}</button>
     `;
   }).join('');
-
 }
 
-/* ================================================================
-   RENDER – PROGRESS RING
-   ================================================================ */
+function progressRing(pct, color) {
+  const radius = 30;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - pct / 100);
 
-function progressRingWithTransition(fromPct, toPct, color) {
-  const r = 30;
-  const c = 2 * Math.PI * r;
-  const fromOffset = c * (1 - fromPct / 100);
-  const safeColor = color || '#1d3461';
   return `
-    <div class="progressRing" data-target-pct="${toPct}" style="--ring-color:${safeColor};--ring-offset:${fromOffset};--ring-circ:${c}">
+    <div class="progressRing">
       <svg viewBox="0 0 84 84" aria-hidden="true">
-        <circle class="progressTrack" cx="42" cy="42" r="30" fill="none" stroke-width="7"></circle>
-        <circle class="progressFill" cx="42" cy="42" r="30" fill="none" stroke-width="7"
+        <circle cx="42" cy="42" r="30" fill="none" stroke="#e5e5ea" stroke-width="7"></circle>
+        <circle cx="42" cy="42" r="30" fill="none" stroke="${color}" stroke-width="7"
+          stroke-linecap="round" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
           transform="rotate(-90 42 42)"></circle>
       </svg>
-      <div class="progressText">${Math.round(toPct)}%</div>
+      <div class="progressText">${Math.round(pct)}%</div>
     </div>
   `;
 }
 
-function animateProgressVisuals(app) {
-  const ring = app.querySelector('.progressRing[data-target-pct]');
-  if (ring) {
-    const targetPct = Number(ring.dataset.targetPct) || 0;
-    const c = Number(ring.style.getPropertyValue('--ring-circ')) || (2 * Math.PI * 30);
-    const targetOffset = c * (1 - targetPct / 100);
-    requestAnimationFrame(() => {
-      ring.style.setProperty('--ring-offset', targetOffset);
-    });
-  }
-
-  app.querySelectorAll('.quarterBarFill[data-target-width]').forEach(bar => {
-    const target = Number(bar.dataset.targetWidth);
-    if (!Number.isFinite(target)) return;
-    requestAnimationFrame(() => {
-      bar.style.width = `${target}%`;
-    });
-  });
-}
-
-/* ================================================================
-   RENDER – HAUPT-ANSICHT
-   ================================================================ */
-
-let isInitialRender = true;
-
 function render() {
-  const subject        = getSubject();
+  if (!subjects.length) return;
+
+  const subject = getSubject();
   const effectiveLevel = getEffectiveLevel(subject);
+  const overall = calcSubjectProgress(subject);
+
   setTheme(subject);
   renderTabs();
 
-  const app     = document.getElementById('app');
-  const overall = calcSubjectProgress(subject);
-  const previousOverallPct = Number.isFinite(previousProgress.subjectPctById[subject.id])
-    ? previousProgress.subjectPctById[subject.id]
-    : overall.pct;
+  const quarterHtml = [];
 
-  const quarterStatsByKey = {};
-  subject.quarters.forEach((quarter, quarterIndex) => {
-    const key = getQuarterKey(subject.id, quarterIndex);
-    quarterStatsByKey[key] = getQuarterStats(quarter, effectiveLevel);
-  });
+  for (let quarterIndex = 0; quarterIndex < subject.quarters.length; quarterIndex += 1) {
+    const quarter = subject.quarters[quarterIndex];
+    const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+    const books = Array.isArray(quarter.books) ? quarter.books : [];
+
+    let quarterTotal = 0;
+    let quarterDone = 0;
+    const sectionHtml = [];
+
+    for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex += 1) {
+      const section = sections[sectionIndex];
+      const visibleCount = countVisibleTopics(section, effectiveLevel);
+      const doneCount = countDone(section, effectiveLevel);
+      const allDone = visibleCount > 0 && doneCount === visibleCount;
+      const isOpen = state.openSections[section.id] !== false;
+
+      quarterTotal += visibleCount;
+      quarterDone += doneCount;
+
+      let topicsHtml = '';
+      if (isOpen) {
+        const topicRows = [];
+        for (let topicIndex = 0; topicIndex < section.topics.length; topicIndex += 1) {
+          const topic = section.topics[topicIndex];
+          if (!isTopicVisible(topic, effectiveLevel)) continue;
+
+          const key = getTopicKey(section.id, topicIndex);
+          const isChecked = !!state.checked[key];
+          const isLK = topic.level === 'lk';
+          const isGK = topic.level === 'gk';
+
+          topicRows.push(`
+            <label class="topic ${isChecked ? 'checked' : ''}">
+              <input type="checkbox" data-topic-key="${key}" ${isChecked ? 'checked' : ''}>
+              <span class="topicText">
+                ${isLK ? '<span class="lkTag">LK</span>' : ''}${isGK ? '<span class="gkTag">GK</span>' : ''}${escapeHtml(topic.text)}
+              </span>
+            </label>
+          `);
+        }
+
+        topicsHtml = `
+          <div class="topics">
+            ${topicRows.join('')}
+            <div class="sectionTools">
+              <button class="miniBtn" data-mark-section="${section.id}">
+                ${doneCount === visibleCount ? 'Alle abwählen' : 'Alle abhaken'}
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      sectionHtml.push(`
+        <article class="section">
+          <button class="sectionHeader ${allDone ? 'done' : ''}" data-toggle-section="${section.id}">
+            <span class="arrow">${isOpen ? '▾' : '▸'}</span>
+            <span class="sectionTitle">${escapeHtml(section.title)}</span>
+            <span class="pill">${doneCount}/${visibleCount}</span>
+          </button>
+          ${topicsHtml}
+        </article>
+      `);
+    }
+
+    const quarterPct = quarterTotal ? (quarterDone / quarterTotal) * 100 : 0;
+
+    const booksHtml = books.length ? `
+      <div class="books">
+        <div class="booksTitle">Speziallektueren</div>
+        ${books.map(book => {
+          const hasPages = Number.isInteger(book.pages) && book.pages > 0;
+          return `
+            <article class="bookItem">
+              <span class="bookTag">BUCH</span>
+              <span class="bookName">${escapeHtml(book.name || '')}</span>
+              ${hasPages ? `<span class="bookPages">${book.pages} Seiten</span>` : ''}
+            </article>
+          `;
+        }).join('')}
+      </div>
+    ` : '';
+
+    quarterHtml.push(`
+      <section class="quarter">
+        <div class="quarterHead">
+          <div class="quarterBadge">${quarter.q}</div>
+          <div class="quarterBar">
+            <div class="quarterBarFill" style="width:${quarterPct}%"></div>
+          </div>
+          <div class="quarterMeta">${quarterDone}/${quarterTotal}</div>
+        </div>
+        ${booksHtml}
+        ${sectionHtml.join('')}
+      </section>
+    `);
+  }
 
   if (isInitialRender) {
-    app.classList.add('initial-load');
+    dom.app.classList.add('initial-load');
+    isInitialRender = false;
   } else {
-    app.classList.remove('initial-load');
+    dom.app.classList.remove('initial-load');
   }
 
-  if (shouldAnimateSubjectSwitch) {
-    app.classList.add('subject-switch');
-  } else {
-    app.classList.remove('subject-switch');
-  }
-
-  app.innerHTML = `
+  dom.app.innerHTML = `
     <section class="hero">
       <div>
         <h2>${escapeHtml(subject.name)}</h2>
@@ -325,245 +363,10 @@ function render() {
           <button class="btn" id="collapse-all">Alle zuklappen</button>
         </div>
       </div>
-      ${progressRingWithTransition(previousOverallPct, overall.pct, subject.color)}
+      ${progressRing(overall.pct, subject.color)}
     </section>
-
-    ${subject.quarters.map((quarter, quarterIndex) => {
-      const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
-      const books = Array.isArray(quarter.books) ? quarter.books : [];
-      const quarterKey = getQuarterKey(subject.id, quarterIndex);
-      const quarterStats = quarterStatsByKey[quarterKey];
-      const previousQuarterPct = Number.isFinite(previousProgress.quarterPctByKey[quarterKey])
-        ? previousProgress.quarterPctByKey[quarterKey]
-        : quarterStats.pct;
-
-      return `
-        <section class="quarter" data-quarter-key="${quarterKey}" style="--quarter-index:${quarterIndex}">
-          <div class="quarterHead">
-            <div class="quarterBadge ${quarterStats.complete ? 'is-complete' : ''}">${quarter.q}</div>
-            <div class="quarterBar">
-              <div class="quarterBarFill" data-target-width="${quarterStats.pct}" style="width:${previousQuarterPct}%"></div>
-            </div>
-            <div class="quarterMeta">${quarterStats.done}/${quarterStats.total}</div>
-          </div>
-
-          ${books.length ? `
-            <div class="books">
-              <div class="booksTitle">Lektüre:</div>
-              ${books.map(book => {
-                const hasPages = Number.isInteger(book.pages) && book.pages > 0;
-                return `
-                  <article class="bookItem">
-                    <span class="bookTag">BUCH</span>
-                    <span class="bookName">${escapeHtml(book.name || '')}</span>
-                    ${hasPages ? `<span class="bookPages">${book.pages} Seiten</span>` : ''}
-                  </article>
-                `;
-              }).join('')}
-            </div>
-          ` : ''}
-
-          ${sections.map((section, sectionIndex) => {
-            const visibleTopics = section.topics.filter(t => isTopicVisible(t, effectiveLevel));
-            const done    = countDone(section, effectiveLevel);
-            const allDone = done === visibleTopics.length && visibleTopics.length > 0;
-            const isOpen  = state.openSections[section.id] === true;
-
-            return `
-              <article class="section" style="--section-index:${sectionIndex}">
-                <button class="sectionHeader ${allDone ? 'done' : ''}"
-                  data-toggle-section="${section.id}">
-                  <span class="arrow">${isOpen ? '▾' : '▸'}</span>
-                  <span class="sectionTitle">${escapeHtml(section.title)}</span>
-                  <span class="pill">${done}/${visibleTopics.length}</span>
-                </button>
-                ${isOpen ? `
-                  <div class="topics">
-                    ${section.topics.map((topic, i) => {
-                      if (!isTopicVisible(topic, effectiveLevel)) return '';
-                      const key       = `${section.id}_${i}`;
-                      const isChecked = !!state.checked[key];
-                      const isLK      = topic.level === 'lk';
-                      const isGK      = topic.level === 'gk';
-                      return `
-                        <label class="topic ${isChecked ? 'checked' : ''}">
-                          <input type="checkbox" data-topic-key="${key}" ${isChecked ? 'checked' : ''}>
-                          <span class="topicText">
-                            ${isLK ? '<span class="lkTag">LK</span>' : ''}${isGK ? '<span class="gkTag">GK</span>' : ''}${escapeHtml(topic.text)}
-                          </span>
-                        </label>
-                      `;
-                    }).join('')}
-                    <div class="sectionTools">
-                      <button class="miniBtn" data-mark-section="${section.id}">
-                        ${done === visibleTopics.length ? 'Alle abwählen' : 'Alle abhaken'}
-                      </button>
-                    </div>
-                  </div>
-                ` : ''}
-              </article>
-            `;
-          }).join('')}
-        </section>
-      `;
-    }).join('')}
+    ${quarterHtml.join('')}
   `;
-  animateProgressVisuals(app);
-
-  previousProgress.subjectPctById[subject.id] = overall.pct;
-  Object.keys(quarterStatsByKey).forEach(key => {
-    previousProgress.quarterPctByKey[key] = quarterStatsByKey[key].pct;
-  });
-
-  if (isInitialRender) {
-    document.body.classList.add('app-ready');
-  }
-
-  shouldAnimateSubjectSwitch = false;
-  isInitialRender = false;
-}
-
-function getSectionIdFromTopicKey(topicKey) {
-  const index = topicKey.lastIndexOf('_');
-  return index > 0 ? topicKey.slice(0, index) : '';
-}
-
-function countVisibleTopics(section, level) {
-  let total = 0;
-  for (let i = 0; i < section.topics.length; i += 1) {
-    if (isTopicVisible(section.topics[i], level)) total += 1;
-  }
-  return total;
-}
-
-function findSectionContext(subject, sectionId) {
-  for (let qIndex = 0; qIndex < subject.quarters.length; qIndex += 1) {
-    const quarter = subject.quarters[qIndex];
-    const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
-    for (let sIndex = 0; sIndex < sections.length; sIndex += 1) {
-      const section = sections[sIndex];
-      if (section.id === sectionId) {
-        return { quarterIndex: qIndex, section };
-      }
-    }
-  }
-  return null;
-}
-
-function updateHeroProgress(subject, level) {
-  const muted = document.querySelector('.hero .muted');
-  const ring = document.querySelector('#app .progressRing[data-target-pct]');
-  if (!muted || !ring) return false;
-
-  const overall = calcSubjectProgress(subject);
-  muted.textContent = `${formatLevel(level)} · ${overall.done} von ${overall.total} Themen erledigt`;
-
-  const c = Number(ring.style.getPropertyValue('--ring-circ')) || (2 * Math.PI * 30);
-  const targetOffset = c * (1 - overall.pct / 100);
-  ring.dataset.targetPct = String(overall.pct);
-  const progressText = ring.querySelector('.progressText');
-  if (progressText) {
-    progressText.textContent = `${Math.round(overall.pct)}%`;
-  }
-  requestAnimationFrame(() => {
-    ring.style.setProperty('--ring-offset', targetOffset);
-  });
-
-  previousProgress.subjectPctById[subject.id] = overall.pct;
-  return true;
-}
-
-function updateQuarterProgress(subject, level, quarterIndex) {
-  const quarterKey = getQuarterKey(subject.id, quarterIndex);
-  const quarterEl = document.querySelector(`[data-quarter-key="${quarterKey}"]`);
-  if (!quarterEl) return false;
-
-  const quarter = subject.quarters[quarterIndex];
-  if (!quarter) return false;
-  const stats = getQuarterStats(quarter, level);
-
-  const meta = quarterEl.querySelector('.quarterMeta');
-  if (meta) {
-    meta.textContent = `${stats.done}/${stats.total}`;
-  }
-
-  const badge = quarterEl.querySelector('.quarterBadge');
-  if (badge) {
-    badge.classList.toggle('is-complete', stats.complete);
-  }
-
-  const bar = quarterEl.querySelector('.quarterBarFill');
-  if (bar) {
-    bar.dataset.targetWidth = String(stats.pct);
-    requestAnimationFrame(() => {
-      bar.style.width = `${stats.pct}%`;
-    });
-  }
-
-  previousProgress.quarterPctByKey[quarterKey] = stats.pct;
-  return true;
-}
-
-function updateSectionProgress(subject, level, sectionId) {
-  const context = findSectionContext(subject, sectionId);
-  if (!context) return false;
-
-  const header = document.querySelector(`[data-toggle-section="${sectionId}"]`);
-  if (!header) return false;
-
-  const done = countDone(context.section, level);
-  const visibleTotal = countVisibleTopics(context.section, level);
-  const allDone = visibleTotal > 0 && done === visibleTotal;
-
-  header.classList.toggle('done', allDone);
-  const pill = header.querySelector('.pill');
-  if (pill) {
-    pill.textContent = `${done}/${visibleTotal}`;
-  }
-
-  const markBtn = document.querySelector(`[data-mark-section="${sectionId}"]`);
-  if (markBtn) {
-    markBtn.textContent = allDone ? 'Alle abwählen' : 'Alle abhaken';
-  }
-
-  return true;
-}
-
-function syncSectionTopicDom(sectionId) {
-  const header = document.querySelector(`[data-toggle-section="${sectionId}"]`);
-  if (!header) return false;
-
-  const sectionEl = header.closest('.section');
-  if (!sectionEl) return false;
-
-  const inputs = sectionEl.querySelectorAll('input[type="checkbox"][data-topic-key]');
-  inputs.forEach(input => {
-    const checked = !!state.checked[input.dataset.topicKey];
-    input.checked = checked;
-    const topicLabel = input.closest('.topic');
-    if (topicLabel) {
-      topicLabel.classList.toggle('checked', checked);
-    }
-  });
-  return true;
-}
-
-function applyPartialTopicUpdate(sectionId) {
-  const subject = getSubject();
-  const level = getEffectiveLevel(subject);
-  const context = findSectionContext(subject, sectionId);
-  if (!context) {
-    requestRender();
-    return;
-  }
-
-  const sectionOk = updateSectionProgress(subject, level, sectionId);
-  const quarterOk = updateQuarterProgress(subject, level, context.quarterIndex);
-  const heroOk = updateHeroProgress(subject, level);
-
-  if (!sectionOk || !quarterOk || !heroOk) {
-    requestRender();
-  }
 }
 
 /* ================================================================
@@ -571,117 +374,100 @@ function applyPartialTopicUpdate(sectionId) {
    ================================================================ */
 
 function bindEvents() {
-  const tabs = document.getElementById('tabs');
-  const app = document.getElementById('app');
+  dom.tabs.addEventListener('click', event => {
+    const tab = event.target.closest('.tab[data-subject]');
+    if (!tab || !dom.tabs.contains(tab)) return;
 
-  tabs.addEventListener('click', event => {
-    const btn = event.target.closest('.tab[data-subject]');
-    if (!btn || !tabs.contains(btn)) return;
-
-    const nextSubject = btn.dataset.subject;
-    if (nextSubject === state.activeSubject) return;
+    const nextSubject = tab.dataset.subject;
+    if (!nextSubject || nextSubject === state.activeSubject) return;
 
     state.activeSubject = nextSubject;
-    shouldAnimateSubjectSwitch = true;
     saveUi();
     requestRender();
   });
 
-  app.addEventListener('change', event => {
-    const input = event.target.closest('[data-topic-key]');
-    if (!input || !app.contains(input)) return;
+  dom.app.addEventListener('change', event => {
+    const checkbox = event.target.closest('[data-topic-key]');
+    if (!checkbox || !dom.app.contains(checkbox)) return;
 
-    const subject = getSubject();
-    const level = getEffectiveLevel(subject);
-    const beforeMap = getQuarterCompletionMap(subject, level);
-    state.checked[input.dataset.topicKey] = input.checked;
+    const key = checkbox.dataset.topicKey;
+    if (!key) return;
+
+    state.checked[key] = checkbox.checked;
     saveChecked();
-    celebrateCompletedQuarters(subject, level, beforeMap);
 
-    const topicLabel = input.closest('.topic');
-    if (topicLabel) {
-      topicLabel.classList.toggle('checked', input.checked);
-    }
-    const sectionId = getSectionIdFromTopicKey(input.dataset.topicKey || '');
-    if (!sectionId) {
-      requestRender();
-      return;
-    }
+    const topic = checkbox.closest('.topic');
+    if (topic) topic.classList.toggle('checked', checkbox.checked);
 
-    applyPartialTopicUpdate(sectionId);
+    requestRender();
   });
 
-  app.addEventListener('click', event => {
-    const toggleBtn = event.target.closest('[data-toggle-section]');
-    if (toggleBtn && app.contains(toggleBtn)) {
-      const id = toggleBtn.dataset.toggleSection;
-      state.openSections[id] = state.openSections[id] !== true;
+  dom.app.addEventListener('click', event => {
+    const toggleSection = event.target.closest('[data-toggle-section]');
+    if (toggleSection && dom.app.contains(toggleSection)) {
+      const id = toggleSection.dataset.toggleSection;
+      if (!id) return;
+      state.openSections[id] = !(state.openSections[id] !== false);
       saveUi();
       requestRender();
       return;
     }
 
-    const markBtn = event.target.closest('[data-mark-section]');
-    if (markBtn && app.contains(markBtn)) {
-      const id = markBtn.dataset.markSection;
+    const markSection = event.target.closest('[data-mark-section]');
+    if (markSection && dom.app.contains(markSection)) {
+      const id = markSection.dataset.markSection;
       const subject = getSubject();
       const level = getEffectiveLevel(subject);
-      const beforeMap = getQuarterCompletionMap(subject, level);
+      const section = findSectionById(subject, id);
+      if (!section) return;
 
-      let target = null;
-      subject.quarters.forEach(q => {
-        (q.sections || []).forEach(s => {
-          if (s.id === id) target = s;
-        });
-      });
-      if (!target) return;
-
-      let hasVisibleTopic = false;
+      let hasVisibleTopics = false;
       let allChecked = true;
-      for (let i = 0; i < target.topics.length; i += 1) {
-        const topic = target.topics[i];
+
+      for (let topicIndex = 0; topicIndex < section.topics.length; topicIndex += 1) {
+        const topic = section.topics[topicIndex];
         if (!isTopicVisible(topic, level)) continue;
-        hasVisibleTopic = true;
-        if (!state.checked[`${id}_${i}`]) {
+
+        hasVisibleTopics = true;
+        if (!state.checked[getTopicKey(id, topicIndex)]) {
           allChecked = false;
           break;
         }
       }
-      if (!hasVisibleTopic) return;
 
-      for (let i = 0; i < target.topics.length; i += 1) {
-        const topic = target.topics[i];
+      if (!hasVisibleTopics) return;
+
+      for (let topicIndex = 0; topicIndex < section.topics.length; topicIndex += 1) {
+        const topic = section.topics[topicIndex];
         if (!isTopicVisible(topic, level)) continue;
-        state.checked[`${id}_${i}`] = !allChecked;
+        state.checked[getTopicKey(id, topicIndex)] = !allChecked;
       }
 
       saveChecked();
-      celebrateCompletedQuarters(subject, level, beforeMap);
-
-      if (!syncSectionTopicDom(id)) {
-        requestRender();
-        return;
-      }
-      applyPartialTopicUpdate(id);
+      requestRender();
       return;
     }
 
-    const setLevelBtn = event.target.closest('[data-set-level]');
-    if (setLevelBtn && app.contains(setLevelBtn)) {
+    const setLevel = event.target.closest('[data-set-level]');
+    if (setLevel && dom.app.contains(setLevel)) {
       const subject = getSubject();
-      state.subjectLevels[subject.id] = setLevelBtn.dataset.setLevel;
+      const level = setLevel.dataset.setLevel;
+      if (!level || level === state.subjectLevels[subject.id]) return;
+
+      state.subjectLevels[subject.id] = level;
       saveUi();
       requestRender();
       return;
     }
 
-    const resetSubjectBtn = event.target.closest('#reset-subject');
-    if (resetSubjectBtn && app.contains(resetSubjectBtn)) {
+    const resetSubject = event.target.closest('#reset-subject');
+    if (resetSubject && dom.app.contains(resetSubject)) {
       const subject = getSubject();
-      subject.quarters.forEach(q => {
-        (q.sections || []).forEach(s => {
-          s.topics.forEach((_, i) => {
-            delete state.checked[`${s.id}_${i}`];
+      subject.quarters.forEach(quarter => {
+        const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+        sections.forEach(section => {
+          section.topics.forEach((topic, topicIndex) => {
+            delete state.checked[getTopicKey(section.id, topicIndex)];
           });
         });
       });
@@ -690,19 +476,21 @@ function bindEvents() {
       return;
     }
 
-    const resetAllBtn = event.target.closest('#reset-all');
-    if (resetAllBtn && app.contains(resetAllBtn)) {
+    const resetAll = event.target.closest('#reset-all');
+    if (resetAll && dom.app.contains(resetAll)) {
       state.checked = {};
       saveChecked();
       requestRender();
       return;
     }
 
-    const expandAllBtn = event.target.closest('#expand-all');
-    if (expandAllBtn && app.contains(expandAllBtn)) {
-      getSubject().quarters.forEach(q => {
-        (q.sections || []).forEach(s => {
-          state.openSections[s.id] = true;
+    const expandAll = event.target.closest('#expand-all');
+    if (expandAll && dom.app.contains(expandAll)) {
+      const subject = getSubject();
+      subject.quarters.forEach(quarter => {
+        const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+        sections.forEach(section => {
+          state.openSections[section.id] = true;
         });
       });
       saveUi();
@@ -710,11 +498,13 @@ function bindEvents() {
       return;
     }
 
-    const collapseAllBtn = event.target.closest('#collapse-all');
-    if (collapseAllBtn && app.contains(collapseAllBtn)) {
-      getSubject().quarters.forEach(q => {
-        (q.sections || []).forEach(s => {
-          state.openSections[s.id] = false;
+    const collapseAll = event.target.closest('#collapse-all');
+    if (collapseAll && dom.app.contains(collapseAll)) {
+      const subject = getSubject();
+      subject.quarters.forEach(quarter => {
+        const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+        sections.forEach(section => {
+          state.openSections[section.id] = false;
         });
       });
       saveUi();
@@ -727,23 +517,6 @@ function bindEvents() {
    INIT
    ================================================================ */
 
-async function init() {
-  try {
-    const res = await fetch('subjects.json');
-    if (!res.ok) throw new Error(`subjects.json konnte nicht geladen werden (HTTP ${res.status})`);
-    window.subjects = await res.json();
-  } catch (e) {
-    document.getElementById('app').innerHTML =
-      '<p style="color:red;padding:20px">Fehler: subjects.json konnte nicht geladen werden.</p>';
-    return;
-  }
-  loadState();
-  applyPerformanceMode();
-  bindEvents();
-  render();
-}
-init();
-
 function applyPerformanceMode() {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const cores = Number(navigator.hardwareConcurrency || 0);
@@ -754,35 +527,97 @@ function applyPerformanceMode() {
   }
 }
 
-/* ── Header: bei Scroll nach unten ausblenden ───────────────────── */
-(function () {
+function bindHeaderScroll() {
   const header = document.querySelector('.site-header');
   if (!header) return;
 
-  let lastScrollY = window.scrollY;
-  let nextScrollY = lastScrollY;
+  let lastKnownY = window.scrollY;
+  let latestY = lastKnownY;
   let ticking = false;
+  let headerHidden = false;
+  let scrollIdleTimer = null;
 
-  function updateHeader() {
-    const currentY = nextScrollY;
-    const scrollingDown = currentY > lastScrollY + 2;
-    const scrollingUp = currentY < lastScrollY - 2;
+  function markScrolling() {
+    document.body.classList.add('is-scrolling');
+    if (scrollIdleTimer) {
+      window.clearTimeout(scrollIdleTimer);
+    }
+    scrollIdleTimer = window.setTimeout(() => {
+      document.body.classList.remove('is-scrolling');
+      scrollIdleTimer = null;
+    }, 140);
+  }
 
-    if (scrollingDown && currentY > 80) {
+  function clearScrollState() {
+    if (scrollIdleTimer) {
+      window.clearTimeout(scrollIdleTimer);
+      scrollIdleTimer = null;
+    }
+    document.body.classList.remove('is-scrolling');
+  }
+
+  function onAnimationFrame() {
+    const currentY = latestY;
+    const scrollingDown = currentY > lastKnownY + 4;
+    const scrollingUp = currentY < lastKnownY - 4;
+
+    if (scrollingDown && currentY > 96 && !headerHidden) {
       header.classList.add('header-hidden');
-    } else if (scrollingUp || currentY <= 80) {
+      headerHidden = true;
+    } else if ((scrollingUp || currentY <= 96) && headerHidden) {
       header.classList.remove('header-hidden');
+      headerHidden = false;
     }
 
-    lastScrollY = currentY;
+    lastKnownY = currentY;
     ticking = false;
   }
 
-  window.addEventListener('scroll', function () {
-    nextScrollY = window.scrollY;
-    if (!ticking) {
-      ticking = true;
-      requestAnimationFrame(updateHeader);
-    }
+  window.addEventListener('scroll', () => {
+    latestY = window.scrollY;
+    markScrolling();
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(onAnimationFrame);
   }, { passive: true });
-}());
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      clearScrollState();
+    }
+  });
+
+  window.addEventListener('pagehide', clearScrollState, { passive: true });
+}
+
+async function init() {
+  dom.tabs = document.getElementById('tabs');
+  dom.app = document.getElementById('app');
+
+  if (!dom.tabs || !dom.app) return;
+
+  try {
+    const response = await fetch('subjects.json');
+    if (!response.ok) {
+      throw new Error(`subjects.json konnte nicht geladen werden (HTTP ${response.status})`);
+    }
+    subjects = await response.json();
+  } catch (error) {
+    dom.app.innerHTML = '<p style="color:red;padding:20px">Fehler: subjects.json konnte nicht geladen werden.</p>';
+    return;
+  }
+
+  loadState();
+  applyPerformanceMode();
+  bindEvents();
+  bindHeaderScroll();
+
+  window.addEventListener('beforeunload', () => {
+    flushCheckedSave();
+    flushUiSave();
+  });
+
+  requestRender();
+}
+
+init();

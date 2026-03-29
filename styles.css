@@ -121,6 +121,7 @@ body.app-ready::before {
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 3px solid var(--subject-color);
   transition: transform 0.35s cubic-bezier(.4, 0, .2, 1), border-color 0.3s ease;
+  will-change: transform;
 }
 
 .site-header.header-hidden {
@@ -174,11 +175,10 @@ body.app-ready::before {
   white-space: nowrap;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: transform var(--motion-fast) var(--premium-ease),
-              border-color var(--motion-fast) ease,
-              color var(--motion-fast) ease,
-              background var(--motion-fast) ease,
-              box-shadow var(--motion-fast) ease;
+  transition: transform 0.2s cubic-bezier(.4, 0, .2, 1),
+              border-color 0.2s cubic-bezier(.4, 0, .2, 1),
+              color 0.2s cubic-bezier(.4, 0, .2, 1),
+              background-color 0.2s cubic-bezier(.4, 0, .2, 1);
 }
 
 .tab:hover {
@@ -260,10 +260,10 @@ body.app-ready::before {
   font-weight: 500;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: transform var(--motion-fast) var(--premium-ease),
-              color var(--motion-fast) ease,
-              background var(--motion-fast) ease,
-              box-shadow var(--motion-fast) ease;
+  transition: transform 0.2s cubic-bezier(.4, 0, .2, 1),
+              color 0.2s cubic-bezier(.4, 0, .2, 1),
+              background-color 0.2s cubic-bezier(.4, 0, .2, 1),
+              box-shadow 0.2s cubic-bezier(.4, 0, .2, 1);
 }
 
 .btn:hover {
@@ -321,6 +321,8 @@ body.app-ready::before {
 /* ── Quartal-Bereich ────────────────────────────────────────────── */
 .quarter {
   margin-top: 28px;
+  content-visibility: auto;
+  contain-intrinsic-size: 520px;
 }
 
 .quarterHead {
@@ -630,10 +632,10 @@ body.app-ready::before {
   font-weight: 500;
   padding: 5px 12px;
   cursor: pointer;
-  transition: transform var(--motion-fast) var(--premium-ease),
-              background var(--motion-fast) ease,
-              box-shadow var(--motion-fast) ease,
-              color var(--motion-fast) ease;
+  transition: transform 0.2s cubic-bezier(.4, 0, .2, 1),
+              color 0.2s cubic-bezier(.4, 0, .2, 1),
+              background-color 0.2s cubic-bezier(.4, 0, .2, 1),
+              box-shadow 0.2s cubic-bezier(.4, 0, .2, 1);
 }
 
 .miniBtn:hover {
@@ -755,6 +757,39 @@ body.lite-effects::before {
   display: none;
 }
 
+/* During active scroll, temporarily reduce expensive paint/compositing work */
+body.is-scrolling::before {
+  display: none;
+}
+
+body.is-scrolling .site-header,
+body.is-scrolling .hero,
+body.is-scrolling .section,
+body.is-scrolling .quarterBar,
+body.is-scrolling .tab,
+body.is-scrolling .btn {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+body.is-scrolling .hero,
+body.is-scrolling .section,
+body.is-scrolling .tab,
+body.is-scrolling .btn,
+body.is-scrolling .miniBtn,
+body.is-scrolling .level-btn,
+body.is-scrolling .progressRing,
+body.is-scrolling .quarterBarFill {
+  box-shadow: none;
+  filter: none;
+}
+
+body.is-scrolling *,
+body.is-scrolling *::before,
+body.is-scrolling *::after {
+  animation-play-state: paused;
+}
+
 body.lite-effects .site-header,
 body.lite-effects .hero,
 body.lite-effects .section,
@@ -850,7 +885,10 @@ body.lite-effects .section {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  transition: all 0.2s cubic-bezier(.4, 0, .2, 1);
+  transition: transform 0.2s cubic-bezier(.4, 0, .2, 1),
+              color 0.2s cubic-bezier(.4, 0, .2, 1),
+              background-color 0.2s cubic-bezier(.4, 0, .2, 1),
+              box-shadow 0.2s cubic-bezier(.4, 0, .2, 1);
 }
 
 .level-btn:hover {
