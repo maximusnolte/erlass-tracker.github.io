@@ -367,7 +367,7 @@ function render() {
             const visibleTopics = section.topics.filter(t => isTopicVisible(t, effectiveLevel));
             const done    = countDone(section, effectiveLevel);
             const allDone = done === visibleTopics.length && visibleTopics.length > 0;
-            const isOpen  = state.openSections[section.id] !== false;
+            const isOpen  = state.openSections[section.id] === true;
 
             return `
               <article class="section" style="--section-index:${sectionIndex}">
@@ -615,7 +615,7 @@ function bindEvents() {
     const toggleBtn = event.target.closest('[data-toggle-section]');
     if (toggleBtn && app.contains(toggleBtn)) {
       const id = toggleBtn.dataset.toggleSection;
-      state.openSections[id] = state.openSections[id] === false;
+      state.openSections[id] = state.openSections[id] !== true;
       saveUi();
       requestRender();
       return;
@@ -738,22 +738,51 @@ async function init() {
     return;
   }
   loadState();
+  applyPerformanceMode();
   bindEvents();
   render();
 }
 init();
 
+function applyPerformanceMode() {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const cores = Number(navigator.hardwareConcurrency || 0);
+  const lowPowerDevice = cores > 0 && cores <= 4;
+
+  if (prefersReducedMotion || lowPowerDevice) {
+    document.body.classList.add('lite-effects');
+  }
+}
+
 /* ── Header: bei Scroll nach unten ausblenden ───────────────────── */
 (function () {
-  let lastScrollY = 0;
   const header = document.querySelector('.site-header');
-  window.addEventListener('scroll', function () {
-    const currentY = window.scrollY;
-    if (currentY > lastScrollY && currentY > 80) {
+  if (!header) return;
+
+  let lastScrollY = window.scrollY;
+  let nextScrollY = lastScrollY;
+  let ticking = false;
+
+  function updateHeader() {
+    const currentY = nextScrollY;
+    const scrollingDown = currentY > lastScrollY + 2;
+    const scrollingUp = currentY < lastScrollY - 2;
+
+    if (scrollingDown && currentY > 80) {
       header.classList.add('header-hidden');
-    } else {
+    } else if (scrollingUp || currentY <= 80) {
       header.classList.remove('header-hidden');
     }
+
     lastScrollY = currentY;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', function () {
+    nextScrollY = window.scrollY;
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(updateHeader);
+    }
   }, { passive: true });
 }());
