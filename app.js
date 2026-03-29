@@ -203,10 +203,13 @@ function render() {
     </section>
 
     ${subject.quarters.map(quarter => {
-      const qTotal = quarter.sections.flatMap(s =>
+      const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+      const books = Array.isArray(quarter.books) ? quarter.books : [];
+
+      const qTotal = sections.flatMap(s =>
         s.topics.filter(t => isTopicVisible(t, effectiveLevel))
       ).length;
-      const qDone = quarter.sections.flatMap(s =>
+      const qDone = sections.flatMap(s =>
         s.topics.filter((t, i) => {
           if (!isTopicVisible(t, effectiveLevel)) return false;
           return !!state.checked[`${s.id}_${i}`];
@@ -224,7 +227,23 @@ function render() {
             <div class="quarterMeta">${qDone}/${qTotal}</div>
           </div>
 
-          ${quarter.sections.map(section => {
+          ${books.length ? `
+            <div class="books">
+              <div class="booksTitle">Speziallektueren</div>
+              ${books.map(book => {
+                const hasPages = Number.isInteger(book.pages) && book.pages > 0;
+                return `
+                  <article class="bookItem">
+                    <span class="bookTag">BUCH</span>
+                    <span class="bookName">${escapeHtml(book.name || '')}</span>
+                    ${hasPages ? `<span class="bookPages">${book.pages} Seiten</span>` : ''}
+                  </article>
+                `;
+              }).join('')}
+            </div>
+          ` : ''}
+
+          ${sections.map(section => {
             const visibleTopics = section.topics.filter(t => isTopicVisible(t, effectiveLevel));
             const done    = countDone(section, effectiveLevel);
             const allDone = done === visibleTopics.length && visibleTopics.length > 0;

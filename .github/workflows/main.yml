@@ -42,12 +42,20 @@ jobs:
 
           const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
-          async function getRows(sheetTab, range = 'A:E') {
+          async function getRows(sheetTab, range = 'A:K') {
             const res = await sheets.spreadsheets.values.get({
               spreadsheetId: SPREADSHEET_ID,
               range: `${sheetTab}!${range}`,
             });
               return res.data.values || [];
+          }
+
+          function parsePages(value) {
+            if (value === undefined || value === null || String(value).trim() === '') return null;
+            const normalized = String(value).replace(/[^0-9]/g, '');
+            if (!normalized) return null;
+            const pages = parseInt(normalized, 10);
+            return Number.isFinite(pages) ? pages : null;
           }
 
           async function main() {
@@ -91,21 +99,50 @@ jobs:
                 sectionsMap.get(key).topics.push(topic);
               }
 
+              // Buecher gruppieren (Book_Name, Pages, Quarter)
+              const booksByQuarter = new Map();
+              for (const row of dataRows) {
+                const [, quarter,,,,,,, book_name, pages_raw, book_quarter] = row;
+                const name = (book_name || '').trim();
+                if (!name) continue;
+
+                const q = (book_quarter || quarter || '').trim();
+                if (!q) continue;
+
+                const book = {
+                  name,
+                  pages: parsePages(pages_raw)
+                };
+
+                if (!booksByQuarter.has(q)) booksByQuarter.set(q, []);
+                booksByQuarter.get(q).push(book);
+              }
+
               // Quartale gruppieren
               const quartersMap = new Map();
               for (const section of sectionsMap.values()) {
                 const q = section.quarter;
-                if (!quartersMap.has(q)) quartersMap.set(q, []);
-                quartersMap.get(q).push({
+                if (!q) continue;
+                if (!quartersMap.has(q)) quartersMap.set(q, { sections: [], books: [] });
+                quartersMap.get(q).sections.push({
                   id:     section.id,
                   title:  section.title,
                   topics: section.topics
                 });
               }
 
+              for (const [q, books] of booksByQuarter.entries()) {
+                if (!quartersMap.has(q)) quartersMap.set(q, { sections: [], books: [] });
+                quartersMap.get(q).books.push(...books);
+              }
+
               const quarters = [...quartersMap.entries()]
                 .sort(([a], [b]) => a.localeCompare(b))
-                .map(([q, sections]) => ({ q, sections }));
+                .map(([q, data]) => ({
+                  q,
+                  sections: data.sections,
+                  books: data.books
+                }));
 
               subjects.push({
                 id:       config.id,
