@@ -75,7 +75,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       },
       {
         "q": "Q2",
@@ -146,7 +147,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       },
       {
         "q": "Q3",
@@ -213,7 +215,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       }
     ]
   },
@@ -272,6 +275,12 @@
                 "level": "lk"
               }
             ]
+          }
+        ],
+        "books": [
+          {
+            "name": "Faust 1",
+            "pages": 100
           }
         ]
       },
@@ -332,7 +341,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       },
       {
         "q": "Q3",
@@ -399,7 +409,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       }
     ]
   },
@@ -487,7 +498,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       },
       {
         "q": "Q2",
@@ -574,7 +586,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       },
       {
         "q": "Q3",
@@ -645,7 +658,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       }
     ]
   },
@@ -699,7 +713,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       },
       {
         "q": "Q2",
@@ -754,7 +769,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       },
       {
         "q": "Q3",
@@ -803,7 +819,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       }
     ]
   },
@@ -834,10 +851,12 @@
                 "level": "gk"
               },
               {
-                "text": "Veränderung des Grundgesetzes aufgrund gesellschaftlicher Wandlungsprozesse anhand eines Beispiels"
+                "text": "Veränderung des Grundgesetzes aufgrund gesellschaftlicher Wandlungsprozesse anhand eines Beispiels",
+                "level": "lk"
               },
               {
-                "text": "Das politische Mehrebenensystem vor dem Hintergrund politischer Theorien zur Gewaltenteilung (z.B. Montesquieu, Locke)"
+                "text": "Das politische Mehrebenensystem vor dem Hintergrund politischer Theorien zur Gewaltenteilung (z.B. Montesquieu, Locke)",
+                "level": "lk"
               }
             ]
           },
@@ -893,7 +912,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       },
       {
         "q": "Q2",
@@ -980,7 +1000,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       },
       {
         "q": "Q3",
@@ -1051,7 +1072,8 @@
               }
             ]
           }
-        ]
+        ],
+        "books": []
       }
     ]
   }
