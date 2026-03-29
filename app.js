@@ -2,6 +2,8 @@
    ABITUR CHECKLISTEN 2026 – App
    ================================================================ */
 
+import confetti from 'canvas-confetti';
+
 
 /* ================================================================
    ZUSTAND & PERSISTENZ
@@ -9,12 +11,20 @@
 
 const STORAGE_KEY = 'abitur-checklisten-2026-offline-v1';
 const UI_KEY      = 'abitur-checklisten-2026-ui-v1';
+const CONFETTI_DELAY_MS = 800;
 
 const state = {
   checked:        {},
   openSections:   {},
   activeSubject:  'deutsch',
   subjectLevels:  {}
+};
+
+let shouldAnimateSubjectSwitch = false;
+
+const previousProgress = {
+  subjectPctById: {},
+  quarterPctByKey: {}
 };
 
 function loadState() {
@@ -81,13 +91,79 @@ function countDone(section, level) {
   }).length;
 }
 
+function getQuarterKey(subjectId, quarterIndex) {
+  return `${subjectId}__q${quarterIndex}`;
+}
+
+function getQuarterStats(quarter, level) {
+  const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+  const total = sections.flatMap(s =>
+    s.topics.filter(t => isTopicVisible(t, level))
+  ).length;
+  const done = sections.flatMap(s =>
+    s.topics.filter((t, i) => {
+      if (!isTopicVisible(t, level)) return false;
+      return !!state.checked[`${s.id}_${i}`];
+    })
+  ).length;
+  const pct = total ? (done / total) * 100 : 0;
+  return { total, done, pct, complete: total > 0 && done === total };
+}
+
+function getQuarterCompletionMap(subject, level) {
+  const map = {};
+  subject.quarters.forEach((quarter, index) => {
+    const key = getQuarterKey(subject.id, index);
+    map[key] = getQuarterStats(quarter, level).complete;
+  });
+  return map;
+}
+
+function pulseQuarterBadge(subjectId, quarterIndex) {
+  const quarterKey = getQuarterKey(subjectId, quarterIndex);
+  const badge = document.querySelector(`[data-quarter-key="${quarterKey}"] .quarterBadge`);
+  if (!badge) return;
+  badge.classList.remove('quarterCelebrate');
+  void badge.offsetWidth;
+  badge.classList.add('quarterCelebrate');
+  window.setTimeout(() => badge.classList.remove('quarterCelebrate'), 1000);
+}
+
+function scheduleQuarterConfetti(subjectId, quarterIndex) {
+  window.setTimeout(() => {
+    if (state.activeSubject !== subjectId) return;
+    const subject = subjects.find(s => s.id === subjectId);
+    if (!subject) return;
+
+    const level = getEffectiveLevel(subject);
+    const quarter = subject.quarters[quarterIndex];
+    if (!quarter) return;
+    if (!getQuarterStats(quarter, level).complete) return;
+
+    const colors = [subject.color || '#1d3461', subject.accent || '#2563eb', '#ffffff', '#ffd166'];
+    confetti({ particleCount: 45, spread: 58, origin: { y: 0.72 }, colors, scalar: 0.9 });
+    confetti({ particleCount: 35, spread: 78, origin: { y: 0.72, x: 0.65 }, colors, scalar: 0.9 });
+    pulseQuarterBadge(subjectId, quarterIndex);
+  }, CONFETTI_DELAY_MS);
+}
+
+function celebrateCompletedQuarters(subject, level, beforeMap) {
+  const afterMap = getQuarterCompletionMap(subject, level);
+  subject.quarters.forEach((_, quarterIndex) => {
+    const key = getQuarterKey(subject.id, quarterIndex);
+    if (!beforeMap[key] && afterMap[key]) {
+      scheduleQuarterConfetti(subject.id, quarterIndex);
+    }
+  });
+}
+
 function calcSubjectProgress(subject) {
   const level = getEffectiveLevel(subject);
   const allTopics = subject.quarters.flatMap(q =>
-    q.sections.flatMap(s => s.topics.filter(t => isTopicVisible(t, level)))
+    (q.sections || []).flatMap(s => s.topics.filter(t => isTopicVisible(t, level)))
   );
   const done = subject.quarters.flatMap(q =>
-    q.sections.flatMap(s => s.topics.filter((t, i) => {
+    (q.sections || []).flatMap(s => s.topics.filter((t, i) => {
       if (!isTopicVisible(t, level)) return false;
       return !!state.checked[`${s.id}_${i}`];
     }))
@@ -130,7 +206,10 @@ function renderTabs() {
 
   tabs.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
-      state.activeSubject = btn.dataset.subject;
+      const nextSubject = btn.dataset.subject;
+      if (nextSubject === state.activeSubject) return;
+      state.activeSubject = nextSubject;
+      shouldAnimateSubjectSwitch = true;
       saveUi();
       render();
     });
@@ -141,21 +220,41 @@ function renderTabs() {
    RENDER – PROGRESS RING
    ================================================================ */
 
-function progressRing(pct, color) {
-  const r      = 30;
-  const c      = 2 * Math.PI * r;
-  const offset = c * (1 - pct / 100);
+function progressRingWithTransition(fromPct, toPct, color) {
+  const r = 30;
+  const c = 2 * Math.PI * r;
+  const fromOffset = c * (1 - fromPct / 100);
+  const safeColor = color || '#1d3461';
   return `
-    <div class="progressRing">
+    <div class="progressRing" data-target-pct="${toPct}" style="--ring-color:${safeColor};--ring-offset:${fromOffset};--ring-circ:${c}">
       <svg viewBox="0 0 84 84" aria-hidden="true">
-        <circle cx="42" cy="42" r="30" fill="none" stroke="#e5e5ea" stroke-width="7"></circle>
-        <circle cx="42" cy="42" r="30" fill="none" stroke="${color}" stroke-width="7"
-          stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}"
+        <circle class="progressTrack" cx="42" cy="42" r="30" fill="none" stroke-width="7"></circle>
+        <circle class="progressFill" cx="42" cy="42" r="30" fill="none" stroke-width="7"
           transform="rotate(-90 42 42)"></circle>
       </svg>
-      <div class="progressText">${Math.round(pct)}%</div>
+      <div class="progressText">${Math.round(toPct)}%</div>
     </div>
   `;
+}
+
+function animateProgressVisuals(app) {
+  const ring = app.querySelector('.progressRing[data-target-pct]');
+  if (ring) {
+    const targetPct = Number(ring.dataset.targetPct) || 0;
+    const c = Number(ring.style.getPropertyValue('--ring-circ')) || (2 * Math.PI * 30);
+    const targetOffset = c * (1 - targetPct / 100);
+    requestAnimationFrame(() => {
+      ring.style.setProperty('--ring-offset', targetOffset);
+    });
+  }
+
+  app.querySelectorAll('.quarterBarFill[data-target-width]').forEach(bar => {
+    const target = Number(bar.dataset.targetWidth);
+    if (!Number.isFinite(target)) return;
+    requestAnimationFrame(() => {
+      bar.style.width = `${target}%`;
+    });
+  });
 }
 
 /* ================================================================
@@ -172,12 +271,26 @@ function render() {
 
   const app     = document.getElementById('app');
   const overall = calcSubjectProgress(subject);
+  const previousOverallPct = Number.isFinite(previousProgress.subjectPctById[subject.id])
+    ? previousProgress.subjectPctById[subject.id]
+    : overall.pct;
+
+  const quarterStatsByKey = {};
+  subject.quarters.forEach((quarter, quarterIndex) => {
+    const key = getQuarterKey(subject.id, quarterIndex);
+    quarterStatsByKey[key] = getQuarterStats(quarter, effectiveLevel);
+  });
 
   if (isInitialRender) {
     app.classList.add('initial-load');
-    isInitialRender = false;
   } else {
     app.classList.remove('initial-load');
+  }
+
+  if (shouldAnimateSubjectSwitch) {
+    app.classList.add('subject-switch');
+  } else {
+    app.classList.remove('subject-switch');
   }
 
   app.innerHTML = `
@@ -199,39 +312,52 @@ function render() {
           <button class="btn" id="collapse-all">Alle zuklappen</button>
         </div>
       </div>
-      ${progressRing(overall.pct, subject.color)}
+      ${progressRingWithTransition(previousOverallPct, overall.pct, subject.color)}
     </section>
 
-    ${subject.quarters.map(quarter => {
-      const qTotal = quarter.sections.flatMap(s =>
-        s.topics.filter(t => isTopicVisible(t, effectiveLevel))
-      ).length;
-      const qDone = quarter.sections.flatMap(s =>
-        s.topics.filter((t, i) => {
-          if (!isTopicVisible(t, effectiveLevel)) return false;
-          return !!state.checked[`${s.id}_${i}`];
-        })
-      ).length;
-      const qPct = qTotal ? (qDone / qTotal) * 100 : 0;
+    ${subject.quarters.map((quarter, quarterIndex) => {
+      const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+      const books = Array.isArray(quarter.books) ? quarter.books : [];
+      const quarterKey = getQuarterKey(subject.id, quarterIndex);
+      const quarterStats = quarterStatsByKey[quarterKey];
+      const previousQuarterPct = Number.isFinite(previousProgress.quarterPctByKey[quarterKey])
+        ? previousProgress.quarterPctByKey[quarterKey]
+        : quarterStats.pct;
 
       return `
-        <section class="quarter">
+        <section class="quarter" data-quarter-key="${quarterKey}" style="--quarter-index:${quarterIndex}">
           <div class="quarterHead">
-            <div class="quarterBadge">${quarter.q}</div>
+            <div class="quarterBadge ${quarterStats.complete ? 'is-complete' : ''}">${quarter.q}</div>
             <div class="quarterBar">
-              <div class="quarterBarFill" style="width:${qPct}%"></div>
+              <div class="quarterBarFill" data-target-width="${quarterStats.pct}" style="width:${previousQuarterPct}%"></div>
             </div>
-            <div class="quarterMeta">${qDone}/${qTotal}</div>
+            <div class="quarterMeta">${quarterStats.done}/${quarterStats.total}</div>
           </div>
 
-          ${quarter.sections.map(section => {
+          ${books.length ? `
+            <div class="books">
+              <div class="booksTitle">Lektüre:</div>
+              ${books.map(book => {
+                const hasPages = Number.isInteger(book.pages) && book.pages > 0;
+                return `
+                  <article class="bookItem">
+                    <span class="bookTag">BUCH</span>
+                    <span class="bookName">${escapeHtml(book.name || '')}</span>
+                    ${hasPages ? `<span class="bookPages">${book.pages} Seiten</span>` : ''}
+                  </article>
+                `;
+              }).join('')}
+            </div>
+          ` : ''}
+
+          ${sections.map((section, sectionIndex) => {
             const visibleTopics = section.topics.filter(t => isTopicVisible(t, effectiveLevel));
             const done    = countDone(section, effectiveLevel);
             const allDone = done === visibleTopics.length && visibleTopics.length > 0;
             const isOpen  = state.openSections[section.id] !== false;
 
             return `
-              <article class="section">
+              <article class="section" style="--section-index:${sectionIndex}">
                 <button class="sectionHeader ${allDone ? 'done' : ''}"
                   data-toggle-section="${section.id}">
                   <span class="arrow">${isOpen ? '▾' : '▸'}</span>
@@ -271,6 +397,19 @@ function render() {
   `;
 
   bindEvents();
+  animateProgressVisuals(app);
+
+  previousProgress.subjectPctById[subject.id] = overall.pct;
+  Object.keys(quarterStatsByKey).forEach(key => {
+    previousProgress.quarterPctByKey[key] = quarterStatsByKey[key].pct;
+  });
+
+  if (isInitialRender) {
+    document.body.classList.add('app-ready');
+  }
+
+  shouldAnimateSubjectSwitch = false;
+  isInitialRender = false;
 }
 
 /* ================================================================
@@ -280,8 +419,12 @@ function render() {
 function bindEvents() {
   document.querySelectorAll('[data-topic-key]').forEach(input => {
     input.addEventListener('change', () => {
+      const subject = getSubject();
+      const level = getEffectiveLevel(subject);
+      const beforeMap = getQuarterCompletionMap(subject, level);
       state.checked[input.dataset.topicKey] = input.checked;
       saveChecked();
+      celebrateCompletedQuarters(subject, level, beforeMap);
       render();
     });
   });
@@ -300,11 +443,12 @@ function bindEvents() {
       const id      = btn.dataset.markSection;
       const subject = getSubject();
       const level   = getEffectiveLevel(subject);
+      const beforeMap = getQuarterCompletionMap(subject, level);
       let target    = null;
-      subject.quarters.forEach(q => q.sections.forEach(s => { if (s.id === id) target = s; }));
+      subject.quarters.forEach(q => (q.sections || []).forEach(s => { if (s.id === id) target = s; }));
       if (!target) return;
       const visibleTopics = target.topics.filter(t => isTopicVisible(t, level));
-      const allChecked    = visibleTopics.every((t, vi) => {
+      const allChecked    = visibleTopics.every(t => {
         const i = target.topics.indexOf(t);
         return !!state.checked[`${id}_${i}`];
       });
@@ -313,6 +457,7 @@ function bindEvents() {
         state.checked[`${id}_${i}`] = !allChecked;
       });
       saveChecked();
+      celebrateCompletedQuarters(subject, level, beforeMap);
       render();
     });
   });
@@ -329,7 +474,7 @@ function bindEvents() {
   document.getElementById('reset-subject').addEventListener('click', () => {
     const subject = getSubject();
     subject.quarters.forEach(q =>
-      q.sections.forEach(s =>
+      (q.sections || []).forEach(s =>
         s.topics.forEach((_, i) => { delete state.checked[`${s.id}_${i}`]; })
       )
     );
@@ -345,7 +490,7 @@ function bindEvents() {
 
   document.getElementById('expand-all').addEventListener('click', () => {
     getSubject().quarters.forEach(q =>
-      q.sections.forEach(s => { state.openSections[s.id] = true; })
+      (q.sections || []).forEach(s => { state.openSections[s.id] = true; })
     );
     saveUi();
     render();
@@ -353,7 +498,7 @@ function bindEvents() {
 
   document.getElementById('collapse-all').addEventListener('click', () => {
     getSubject().quarters.forEach(q =>
-      q.sections.forEach(s => { state.openSections[s.id] = false; })
+      (q.sections || []).forEach(s => { state.openSections[s.id] = false; })
     );
     saveUi();
     render();

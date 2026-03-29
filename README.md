@@ -29,10 +29,20 @@ Aktuell sind folgende Fächer verfügbar:
 Besuche die Offiziel Gehostete Seite
 Alle Checkboxen und Selektionen werden lokal im **LocalStorage** des Browsers gespeichert. Das Löschen des Browser-Caches entfernt alle gespeicherten Einstellungen.
 
+### Lokale Entwicklung
+
+Nach Aenderungen an `app.js` muss das Bundle neu gebaut werden:
+
+```bash
+npm install
+npm run build
+```
+
 ## 🛠️ Technologie
 
 - HTML / CSS / JavaScript (Vanilla)
 - [Tailwind CSS](https://tailwindcss.com) (via CDN)
+- [canvas-confetti](https://www.npmjs.com/package/canvas-confetti)
 - Fächerdaten aus `subjects.json`
 
 ## 🤝 Beitrag leisten

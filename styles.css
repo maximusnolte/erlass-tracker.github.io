@@ -28,6 +28,21 @@
   --subject-color:  #1d3461;   /* Navy Blue als Fallback */
   --subject-accent: #2563eb;
   --subject-bg:     #eef2fb;
+  --tab-color: #1d3461;
+  --ring-color: var(--subject-color);
+  --ring-circ: 188.4956;
+  --ring-offset: 188.4956;
+  --quarter-index: 0;
+  --section-index: 0;
+
+  /* Motion / Premium feel */
+  --motion-fast: 220ms;
+  --motion-medium: 420ms;
+  --motion-slow: 850ms;
+  --premium-ease: cubic-bezier(.22, 1, .36, 1);
+  --glass-surface: rgba(255, 255, 255, 0.2);
+  --glow-soft: 0 0 0 1px color-mix(in srgb, var(--subject-color) 22%, transparent),
+               0 10px 30px color-mix(in srgb, var(--subject-color) 24%, transparent);
 }
 
 /* ── Reset ──────────────────────────────────────────────────────── */
@@ -69,6 +84,31 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background 0.5s ease;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(40% 30% at 12% 8%, color-mix(in srgb, var(--subject-color) 20%, transparent), transparent 70%),
+    radial-gradient(45% 35% at 88% 2%, color-mix(in srgb, var(--subject-accent) 22%, transparent), transparent 72%);
+  filter: blur(26px);
+}
+
+body.app-ready::before {
+  animation: introGlow 0.65s var(--premium-ease) both;
+}
+
+.site-header,
+.content-area,
+.site-footer {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Header ─────────────────────────────────────────────────────── */
@@ -132,14 +172,21 @@ body {
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
-  transition: all 0.2s cubic-bezier(.4, 0, .2, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform var(--motion-fast) var(--premium-ease),
+              border-color var(--motion-fast) ease,
+              color var(--motion-fast) ease,
+              background var(--motion-fast) ease,
+              box-shadow var(--motion-fast) ease;
 }
 
 .tab:hover {
   border-color: rgba(255, 255, 255, 0.45);
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-1px);
+  background: var(--glass-surface);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: var(--glow-soft);
 }
 
 .tab:active {
@@ -147,11 +194,11 @@ body {
 }
 
 .tab.active {
-  background: var(--tab-color, var(--subject-color));
-  border-color: var(--tab-color, var(--subject-color));
+  background: var(--subject-color);
+  border-color: var(--subject-color);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25), var(--glow-soft);
 }
 
 /* ── Hero-Karte ─────────────────────────────────────────────────── */
@@ -166,12 +213,16 @@ body {
   align-items: center;
   border-top: 4px solid var(--subject-color);
   margin-bottom: 28px;
-  transition: border-color 0.3s ease, box-shadow 0.25s ease, transform 0.22s ease;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: border-color var(--motion-fast) ease,
+              box-shadow var(--motion-fast) ease,
+              transform var(--motion-fast) var(--premium-ease);
 }
 
 .hero:hover {
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
+  box-shadow: 0 12px 44px rgba(0, 0, 0, 0.13), var(--glow-soft);
+  transform: translateY(-3px);
 }
 
 .hero h2 {
@@ -207,14 +258,19 @@ body {
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
-  transition: all 0.2s cubic-bezier(.4, 0, .2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform var(--motion-fast) var(--premium-ease),
+              color var(--motion-fast) ease,
+              background var(--motion-fast) ease,
+              box-shadow var(--motion-fast) ease;
 }
 
 .btn:hover {
-  background: var(--subject-color);
+  background: color-mix(in srgb, var(--subject-color) 90%, white 10%);
   color: #ffffff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--subject-color) 30%, transparent);
 }
 
 .btn:active {
@@ -228,6 +284,7 @@ body {
   height: 80px;
   position: relative;
   flex-shrink: 0;
+  filter: drop-shadow(0 6px 20px color-mix(in srgb, var(--ring-color, var(--subject-color)) 22%, transparent));
 }
 
 .progressRing svg {
@@ -245,7 +302,20 @@ body {
   font-weight: 700;
   font-size: 13px;
   color: var(--subject-color);
-  transition: color 0.3s ease;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--subject-color) 25%, transparent);
+  transition: color var(--motion-medium) ease, text-shadow var(--motion-medium) ease;
+}
+
+.progressTrack {
+  stroke: color-mix(in srgb, var(--ring-color, #e5e5ea) 16%, #e5e5ea);
+}
+
+.progressFill {
+  stroke: var(--ring-color, var(--subject-color));
+  stroke-linecap: round;
+  stroke-dasharray: var(--ring-circ);
+  stroke-dashoffset: var(--ring-offset);
+  transition: stroke-dashoffset var(--motion-slow) var(--premium-ease), stroke var(--motion-medium) ease;
 }
 
 /* ── Quartal-Bereich ────────────────────────────────────────────── */
@@ -273,20 +343,55 @@ body {
   transition: background 0.3s ease;
 }
 
+.quarterBadge.is-complete {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--subject-color) 18%, transparent);
+}
+
+.quarterBadge.quarterCelebrate {
+  animation: quarterCelebrate 0.95s cubic-bezier(.18, .89, .32, 1.28);
+}
+
+@keyframes quarterCelebrate {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
 .quarterBar {
   flex: 1;
   height: 5px;
   background: rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-pill);
   overflow: hidden;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .quarterBarFill {
   height: 100%;
-  width: 0%;
-  background: var(--subject-color);
+  width: 0;
+  position: relative;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--subject-color) 88%, black 12%) 0%,
+    color-mix(in srgb, var(--subject-accent) 70%, var(--subject-color) 30%) 52%,
+    var(--subject-color) 100%);
   border-radius: var(--radius-pill);
-  transition: width 0.35s cubic-bezier(.4, 0, .2, 1), background 0.3s ease;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--subject-color) 34%, transparent);
+  transition: width var(--motion-slow) var(--premium-ease), background var(--motion-medium) ease;
+}
+
+.quarterBarFill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 40%,
+    rgba(255, 255, 255, 0.48) 50%,
+    rgba(255, 255, 255, 0.12) 60%,
+    transparent 100%);
+  animation: barShimmer 2.1s ease-in-out infinite;
 }
 
 .quarterMeta {
@@ -297,6 +402,65 @@ body {
   font-weight: 500;
 }
 
+/* ── Speziallektueren / Buecher ─────────────────────────────────── */
+.books {
+  margin-bottom: 12px;
+  background: color-mix(in srgb, var(--subject-bg) 70%, #ffffff 30%);
+  border: 1px solid color-mix(in srgb, var(--subject-color) 16%, transparent);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+}
+
+.booksTitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--subject-color);
+  margin-bottom: 8px;
+}
+
+.bookItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 10px;
+}
+
+.bookItem + .bookItem {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.bookTag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--subject-color);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.bookName {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.bookPages {
+  font-size: 11px;
+  color: var(--subject-color);
+  border: 1px solid color-mix(in srgb, var(--subject-color) 35%, transparent);
+  background: #fff;
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
 /* ── Abschnitt-Karten ───────────────────────────────────────────── */
 .section {
   background: var(--subject-bg);
@@ -305,12 +469,15 @@ body {
   margin-bottom: 10px;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.22s ease, transform 0.18s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: box-shadow var(--motion-fast) ease, transform var(--motion-fast) var(--premium-ease), border-color var(--motion-fast) ease;
 }
 
 .section:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--subject-color) 22%, transparent);
+  box-shadow: var(--shadow-md), var(--glow-soft);
+  transform: translateY(-2px);
 }
 
 .sectionHeader {
@@ -463,14 +630,17 @@ body {
   font-weight: 500;
   padding: 5px 12px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(.4, 0, .2, 1);
+  transition: transform var(--motion-fast) var(--premium-ease),
+              background var(--motion-fast) ease,
+              box-shadow var(--motion-fast) ease,
+              color var(--motion-fast) ease;
 }
 
 .miniBtn:hover {
   background: var(--subject-color);
   color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--subject-color) 30%, transparent);
 }
 
 .miniBtn:active {
@@ -565,12 +735,41 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes introGlow {
+  0% { opacity: 0; transform: scale(1.03); }
+  100% { opacity: 0.85; transform: scale(1); }
+}
+
+@keyframes switchIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.99); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes barShimmer {
+  0%, 18% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(120%); }
+}
+
 #app.initial-load .hero {
-  animation: fadeInUp 0.45s cubic-bezier(.4, 0, .2, 1) both;
+  animation: fadeInUp 0.5s var(--premium-ease) both;
 }
 
 #app.initial-load .quarter {
-  animation: fadeInUp 0.45s cubic-bezier(.4, 0, .2, 1) 0.07s both;
+  animation: fadeInUp 0.5s var(--premium-ease) 0.05s both;
+}
+
+#app.subject-switch .hero {
+  animation: switchIn 0.58s var(--premium-ease) both;
+}
+
+#app.subject-switch .quarter {
+  animation: switchIn 0.62s var(--premium-ease) both;
+  animation-delay: calc(var(--quarter-index, 0) * 55ms);
+}
+
+#app.subject-switch .section {
+  animation: switchIn 0.56s var(--premium-ease) both;
+  animation-delay: calc(120ms + (var(--section-index, 0) * 35ms));
 }
 
 /* ── Level-Selector ─────────────────────────────────────────────── */
@@ -624,6 +823,17 @@ body {
   background: var(--subject-color);
   color: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0ms !important;
+  }
+
+  body::before {
+    display: none;
+  }
 }
 
 /* ── Footer ─────────────────────────────────────────────────────── */
