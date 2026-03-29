@@ -21,6 +21,7 @@ const state = {
 };
 
 let shouldAnimateSubjectSwitch = false;
+let renderQueued = false;
 
 const previousProgress = {
   subjectPctById: {},
@@ -85,10 +86,13 @@ function isTopicVisible(topic, level) {
 }
 
 function countDone(section, level) {
-  return section.topics.filter((topic, i) => {
-    if (!isTopicVisible(topic, level)) return false;
-    return !!state.checked[`${section.id}_${i}`];
-  }).length;
+  let done = 0;
+  for (let i = 0; i < section.topics.length; i += 1) {
+    const topic = section.topics[i];
+    if (!isTopicVisible(topic, level)) continue;
+    if (state.checked[`${section.id}_${i}`]) done += 1;
+  }
+  return done;
 }
 
 function getQuarterKey(subjectId, quarterIndex) {
@@ -97,15 +101,17 @@ function getQuarterKey(subjectId, quarterIndex) {
 
 function getQuarterStats(quarter, level) {
   const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
-  const total = sections.flatMap(s =>
-    s.topics.filter(t => isTopicVisible(t, level))
-  ).length;
-  const done = sections.flatMap(s =>
-    s.topics.filter((t, i) => {
-      if (!isTopicVisible(t, level)) return false;
-      return !!state.checked[`${s.id}_${i}`];
-    })
-  ).length;
+  let total = 0;
+  let done = 0;
+  for (let sIndex = 0; sIndex < sections.length; sIndex += 1) {
+    const section = sections[sIndex];
+    for (let tIndex = 0; tIndex < section.topics.length; tIndex += 1) {
+      const topic = section.topics[tIndex];
+      if (!isTopicVisible(topic, level)) continue;
+      total += 1;
+      if (state.checked[`${section.id}_${tIndex}`]) done += 1;
+    }
+  }
   const pct = total ? (done / total) * 100 : 0;
   return { total, done, pct, complete: total > 0 && done === total };
 }
@@ -159,16 +165,33 @@ function celebrateCompletedQuarters(subject, level, beforeMap) {
 
 function calcSubjectProgress(subject) {
   const level = getEffectiveLevel(subject);
-  const allTopics = subject.quarters.flatMap(q =>
-    (q.sections || []).flatMap(s => s.topics.filter(t => isTopicVisible(t, level)))
-  );
-  const done = subject.quarters.flatMap(q =>
-    (q.sections || []).flatMap(s => s.topics.filter((t, i) => {
-      if (!isTopicVisible(t, level)) return false;
-      return !!state.checked[`${s.id}_${i}`];
-    }))
-  );
-  return { total: allTopics.length, done: done.length, pct: allTopics.length ? (done.length / allTopics.length) * 100 : 0 };
+  let total = 0;
+  let done = 0;
+
+  for (let qIndex = 0; qIndex < subject.quarters.length; qIndex += 1) {
+    const quarter = subject.quarters[qIndex];
+    const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+    for (let sIndex = 0; sIndex < sections.length; sIndex += 1) {
+      const section = sections[sIndex];
+      for (let tIndex = 0; tIndex < section.topics.length; tIndex += 1) {
+        const topic = section.topics[tIndex];
+        if (!isTopicVisible(topic, level)) continue;
+        total += 1;
+        if (state.checked[`${section.id}_${tIndex}`]) done += 1;
+      }
+    }
+  }
+
+  return { total, done, pct: total ? (done / total) * 100 : 0 };
+}
+
+function requestRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    render();
+  });
 }
 
 function setTheme(subject) {
@@ -204,16 +227,6 @@ function renderTabs() {
     `;
   }).join('');
 
-  tabs.querySelectorAll('.tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const nextSubject = btn.dataset.subject;
-      if (nextSubject === state.activeSubject) return;
-      state.activeSubject = nextSubject;
-      shouldAnimateSubjectSwitch = true;
-      saveUi();
-      render();
-    });
-  });
 }
 
 /* ================================================================
@@ -395,8 +408,6 @@ function render() {
       `;
     }).join('')}
   `;
-
-  bindEvents();
   animateProgressVisuals(app);
 
   previousProgress.subjectPctById[subject.id] = overall.pct;
@@ -412,96 +423,303 @@ function render() {
   isInitialRender = false;
 }
 
+function getSectionIdFromTopicKey(topicKey) {
+  const index = topicKey.lastIndexOf('_');
+  return index > 0 ? topicKey.slice(0, index) : '';
+}
+
+function countVisibleTopics(section, level) {
+  let total = 0;
+  for (let i = 0; i < section.topics.length; i += 1) {
+    if (isTopicVisible(section.topics[i], level)) total += 1;
+  }
+  return total;
+}
+
+function findSectionContext(subject, sectionId) {
+  for (let qIndex = 0; qIndex < subject.quarters.length; qIndex += 1) {
+    const quarter = subject.quarters[qIndex];
+    const sections = Array.isArray(quarter.sections) ? quarter.sections : [];
+    for (let sIndex = 0; sIndex < sections.length; sIndex += 1) {
+      const section = sections[sIndex];
+      if (section.id === sectionId) {
+        return { quarterIndex: qIndex, section };
+      }
+    }
+  }
+  return null;
+}
+
+function updateHeroProgress(subject, level) {
+  const muted = document.querySelector('.hero .muted');
+  const ring = document.querySelector('#app .progressRing[data-target-pct]');
+  if (!muted || !ring) return false;
+
+  const overall = calcSubjectProgress(subject);
+  muted.textContent = `${formatLevel(level)} · ${overall.done} von ${overall.total} Themen erledigt`;
+
+  const c = Number(ring.style.getPropertyValue('--ring-circ')) || (2 * Math.PI * 30);
+  const targetOffset = c * (1 - overall.pct / 100);
+  ring.dataset.targetPct = String(overall.pct);
+  const progressText = ring.querySelector('.progressText');
+  if (progressText) {
+    progressText.textContent = `${Math.round(overall.pct)}%`;
+  }
+  requestAnimationFrame(() => {
+    ring.style.setProperty('--ring-offset', targetOffset);
+  });
+
+  previousProgress.subjectPctById[subject.id] = overall.pct;
+  return true;
+}
+
+function updateQuarterProgress(subject, level, quarterIndex) {
+  const quarterKey = getQuarterKey(subject.id, quarterIndex);
+  const quarterEl = document.querySelector(`[data-quarter-key="${quarterKey}"]`);
+  if (!quarterEl) return false;
+
+  const quarter = subject.quarters[quarterIndex];
+  if (!quarter) return false;
+  const stats = getQuarterStats(quarter, level);
+
+  const meta = quarterEl.querySelector('.quarterMeta');
+  if (meta) {
+    meta.textContent = `${stats.done}/${stats.total}`;
+  }
+
+  const badge = quarterEl.querySelector('.quarterBadge');
+  if (badge) {
+    badge.classList.toggle('is-complete', stats.complete);
+  }
+
+  const bar = quarterEl.querySelector('.quarterBarFill');
+  if (bar) {
+    bar.dataset.targetWidth = String(stats.pct);
+    requestAnimationFrame(() => {
+      bar.style.width = `${stats.pct}%`;
+    });
+  }
+
+  previousProgress.quarterPctByKey[quarterKey] = stats.pct;
+  return true;
+}
+
+function updateSectionProgress(subject, level, sectionId) {
+  const context = findSectionContext(subject, sectionId);
+  if (!context) return false;
+
+  const header = document.querySelector(`[data-toggle-section="${sectionId}"]`);
+  if (!header) return false;
+
+  const done = countDone(context.section, level);
+  const visibleTotal = countVisibleTopics(context.section, level);
+  const allDone = visibleTotal > 0 && done === visibleTotal;
+
+  header.classList.toggle('done', allDone);
+  const pill = header.querySelector('.pill');
+  if (pill) {
+    pill.textContent = `${done}/${visibleTotal}`;
+  }
+
+  const markBtn = document.querySelector(`[data-mark-section="${sectionId}"]`);
+  if (markBtn) {
+    markBtn.textContent = allDone ? 'Alle abwählen' : 'Alle abhaken';
+  }
+
+  return true;
+}
+
+function syncSectionTopicDom(sectionId) {
+  const header = document.querySelector(`[data-toggle-section="${sectionId}"]`);
+  if (!header) return false;
+
+  const sectionEl = header.closest('.section');
+  if (!sectionEl) return false;
+
+  const inputs = sectionEl.querySelectorAll('input[type="checkbox"][data-topic-key]');
+  inputs.forEach(input => {
+    const checked = !!state.checked[input.dataset.topicKey];
+    input.checked = checked;
+    const topicLabel = input.closest('.topic');
+    if (topicLabel) {
+      topicLabel.classList.toggle('checked', checked);
+    }
+  });
+  return true;
+}
+
+function applyPartialTopicUpdate(sectionId) {
+  const subject = getSubject();
+  const level = getEffectiveLevel(subject);
+  const context = findSectionContext(subject, sectionId);
+  if (!context) {
+    requestRender();
+    return;
+  }
+
+  const sectionOk = updateSectionProgress(subject, level, sectionId);
+  const quarterOk = updateQuarterProgress(subject, level, context.quarterIndex);
+  const heroOk = updateHeroProgress(subject, level);
+
+  if (!sectionOk || !quarterOk || !heroOk) {
+    requestRender();
+  }
+}
+
 /* ================================================================
    EVENTS
    ================================================================ */
 
 function bindEvents() {
-  document.querySelectorAll('[data-topic-key]').forEach(input => {
-    input.addEventListener('change', () => {
+  const tabs = document.getElementById('tabs');
+  const app = document.getElementById('app');
+
+  tabs.addEventListener('click', event => {
+    const btn = event.target.closest('.tab[data-subject]');
+    if (!btn || !tabs.contains(btn)) return;
+
+    const nextSubject = btn.dataset.subject;
+    if (nextSubject === state.activeSubject) return;
+
+    state.activeSubject = nextSubject;
+    shouldAnimateSubjectSwitch = true;
+    saveUi();
+    requestRender();
+  });
+
+  app.addEventListener('change', event => {
+    const input = event.target.closest('[data-topic-key]');
+    if (!input || !app.contains(input)) return;
+
+    const subject = getSubject();
+    const level = getEffectiveLevel(subject);
+    const beforeMap = getQuarterCompletionMap(subject, level);
+    state.checked[input.dataset.topicKey] = input.checked;
+    saveChecked();
+    celebrateCompletedQuarters(subject, level, beforeMap);
+
+    const topicLabel = input.closest('.topic');
+    if (topicLabel) {
+      topicLabel.classList.toggle('checked', input.checked);
+    }
+    const sectionId = getSectionIdFromTopicKey(input.dataset.topicKey || '');
+    if (!sectionId) {
+      requestRender();
+      return;
+    }
+
+    applyPartialTopicUpdate(sectionId);
+  });
+
+  app.addEventListener('click', event => {
+    const toggleBtn = event.target.closest('[data-toggle-section]');
+    if (toggleBtn && app.contains(toggleBtn)) {
+      const id = toggleBtn.dataset.toggleSection;
+      state.openSections[id] = state.openSections[id] === false;
+      saveUi();
+      requestRender();
+      return;
+    }
+
+    const markBtn = event.target.closest('[data-mark-section]');
+    if (markBtn && app.contains(markBtn)) {
+      const id = markBtn.dataset.markSection;
       const subject = getSubject();
       const level = getEffectiveLevel(subject);
       const beforeMap = getQuarterCompletionMap(subject, level);
-      state.checked[input.dataset.topicKey] = input.checked;
-      saveChecked();
-      celebrateCompletedQuarters(subject, level, beforeMap);
-      render();
-    });
-  });
 
-  document.querySelectorAll('[data-toggle-section]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.toggleSection;
-      state.openSections[id] = !(state.openSections[id] !== false);
-      saveUi();
-      render();
-    });
-  });
-
-  document.querySelectorAll('[data-mark-section]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id      = btn.dataset.markSection;
-      const subject = getSubject();
-      const level   = getEffectiveLevel(subject);
-      const beforeMap = getQuarterCompletionMap(subject, level);
-      let target    = null;
-      subject.quarters.forEach(q => (q.sections || []).forEach(s => { if (s.id === id) target = s; }));
+      let target = null;
+      subject.quarters.forEach(q => {
+        (q.sections || []).forEach(s => {
+          if (s.id === id) target = s;
+        });
+      });
       if (!target) return;
-      const visibleTopics = target.topics.filter(t => isTopicVisible(t, level));
-      const allChecked    = visibleTopics.every(t => {
-        const i = target.topics.indexOf(t);
-        return !!state.checked[`${id}_${i}`];
-      });
-      target.topics.forEach((t, i) => {
-        if (!isTopicVisible(t, level)) return;
+
+      let hasVisibleTopic = false;
+      let allChecked = true;
+      for (let i = 0; i < target.topics.length; i += 1) {
+        const topic = target.topics[i];
+        if (!isTopicVisible(topic, level)) continue;
+        hasVisibleTopic = true;
+        if (!state.checked[`${id}_${i}`]) {
+          allChecked = false;
+          break;
+        }
+      }
+      if (!hasVisibleTopic) return;
+
+      for (let i = 0; i < target.topics.length; i += 1) {
+        const topic = target.topics[i];
+        if (!isTopicVisible(topic, level)) continue;
         state.checked[`${id}_${i}`] = !allChecked;
-      });
+      }
+
       saveChecked();
       celebrateCompletedQuarters(subject, level, beforeMap);
-      render();
-    });
-  });
 
-  document.querySelectorAll('[data-set-level]').forEach(btn => {
-    btn.addEventListener('click', () => {
+      if (!syncSectionTopicDom(id)) {
+        requestRender();
+        return;
+      }
+      applyPartialTopicUpdate(id);
+      return;
+    }
+
+    const setLevelBtn = event.target.closest('[data-set-level]');
+    if (setLevelBtn && app.contains(setLevelBtn)) {
       const subject = getSubject();
-      state.subjectLevels[subject.id] = btn.dataset.setLevel;
+      state.subjectLevels[subject.id] = setLevelBtn.dataset.setLevel;
       saveUi();
-      render();
-    });
-  });
+      requestRender();
+      return;
+    }
 
-  document.getElementById('reset-subject').addEventListener('click', () => {
-    const subject = getSubject();
-    subject.quarters.forEach(q =>
-      (q.sections || []).forEach(s =>
-        s.topics.forEach((_, i) => { delete state.checked[`${s.id}_${i}`]; })
-      )
-    );
-    saveChecked();
-    render();
-  });
+    const resetSubjectBtn = event.target.closest('#reset-subject');
+    if (resetSubjectBtn && app.contains(resetSubjectBtn)) {
+      const subject = getSubject();
+      subject.quarters.forEach(q => {
+        (q.sections || []).forEach(s => {
+          s.topics.forEach((_, i) => {
+            delete state.checked[`${s.id}_${i}`];
+          });
+        });
+      });
+      saveChecked();
+      requestRender();
+      return;
+    }
 
-  document.getElementById('reset-all').addEventListener('click', () => {
-    state.checked = {};
-    saveChecked();
-    render();
-  });
+    const resetAllBtn = event.target.closest('#reset-all');
+    if (resetAllBtn && app.contains(resetAllBtn)) {
+      state.checked = {};
+      saveChecked();
+      requestRender();
+      return;
+    }
 
-  document.getElementById('expand-all').addEventListener('click', () => {
-    getSubject().quarters.forEach(q =>
-      (q.sections || []).forEach(s => { state.openSections[s.id] = true; })
-    );
-    saveUi();
-    render();
-  });
+    const expandAllBtn = event.target.closest('#expand-all');
+    if (expandAllBtn && app.contains(expandAllBtn)) {
+      getSubject().quarters.forEach(q => {
+        (q.sections || []).forEach(s => {
+          state.openSections[s.id] = true;
+        });
+      });
+      saveUi();
+      requestRender();
+      return;
+    }
 
-  document.getElementById('collapse-all').addEventListener('click', () => {
-    getSubject().quarters.forEach(q =>
-      (q.sections || []).forEach(s => { state.openSections[s.id] = false; })
-    );
-    saveUi();
-    render();
+    const collapseAllBtn = event.target.closest('#collapse-all');
+    if (collapseAllBtn && app.contains(collapseAllBtn)) {
+      getSubject().quarters.forEach(q => {
+        (q.sections || []).forEach(s => {
+          state.openSections[s.id] = false;
+        });
+      });
+      saveUi();
+      requestRender();
+    }
   });
 }
 
@@ -520,6 +738,7 @@ async function init() {
     return;
   }
   loadState();
+  bindEvents();
   render();
 }
 init();

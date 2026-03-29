@@ -391,7 +391,7 @@ body.app-ready::before {
     rgba(255, 255, 255, 0.48) 50%,
     rgba(255, 255, 255, 0.12) 60%,
     transparent 100%);
-  animation: barShimmer 2.1s ease-in-out infinite;
+  opacity: 0;
 }
 
 .quarterMeta {
